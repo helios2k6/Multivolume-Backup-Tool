@@ -24,7 +24,7 @@
 
 namespace MBT
 
-///<summary>An actor object</summary>
-type IActor = 
-   ///<summary>Post a message to the actor</summary>
-   abstract member Post : obj -> unit
+///<summary>A module of operators for IActors</summary>
+module public Operations =
+   ///<summary>Allows you to send a message to an IActor using the "!" (bang) operator
+   let public (+!) (actor : IActor) (msg : obj) = actor.Post msg

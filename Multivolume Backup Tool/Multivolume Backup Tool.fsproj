@@ -64,6 +64,8 @@
     <Compile Include="ApplicationConfiguration.fs" />
     <Compile Include="ArgumentParsing.fs" />
     <Compile Include="IActor.fs" />
+    <Compile Include="MessageOperations.fs" />
+    <Compile Include="Message.fs" />
     <Compile Include="Messages.fs" />
     <Compile Include="ActorBase.fs" />
     <Compile Include="Program.fs" />

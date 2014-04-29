@@ -24,7 +24,5 @@
 
 namespace MBT
 
-///<summary>An actor object</summary>
-type IActor = 
-   ///<summary>Post a message to the actor</summary>
-   abstract member Post : obj -> unit
+///<summary>Represents a message</summary>
+type Message = { Sender : IActor; Payload : obj }
