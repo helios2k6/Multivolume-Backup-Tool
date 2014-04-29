@@ -60,14 +60,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Core.fs" />
     <Compile Include="CommandLineArguments.fs" />
     <Compile Include="ApplicationConfiguration.fs" />
     <Compile Include="ArgumentParsing.fs" />
     <Compile Include="IActor.fs" />
-    <Compile Include="MessageOperations.fs" />
     <Compile Include="Message.fs" />
+    <Compile Include="MessageOperations.fs" />
+    <Compile Include="OutsideActor.fs" />
     <Compile Include="Messages.fs" />
     <Compile Include="ActorBase.fs" />
+    <Compile Include="InputActor.fs" />
+    <Compile Include="OutputActor.fs" />
+    <Compile Include="AppConfigActor.fs" />
+    <Compile Include="ArchiveActor.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />

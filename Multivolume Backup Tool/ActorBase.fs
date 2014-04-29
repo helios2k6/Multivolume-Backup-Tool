@@ -26,10 +26,11 @@ namespace MBT
 
 open System
 open Microsoft.FSharp.Control
+open MBT.Operations
 
 ///<summary>The base class for all actors</summary>
 [<AbstractClass>]
-type ActorBase<'msg, 'state> = 
+type ActorBase<'msg, 'state>() = 
    (* Fields *)
    member private this._mailbox = MailboxProcessor.Start (this.InputLoop (this.PreStart()))
    
@@ -74,7 +75,7 @@ type ActorBase<'msg, 'state> =
    default this.PreShutdown state = ()
 
    ///<summary>Shutdown this actor</summary>
-   member public this.Shutdown() = (this :> IActor).Post Messages.Die
+   member public this.Shutdown() = (this :> IActor) +! Messages.Die
 
    interface IActor with
       member this.Post msg = this._mailbox.Post msg
