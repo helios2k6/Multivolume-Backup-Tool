@@ -24,13 +24,11 @@ type ActorBase<'a> =
       loop()
 
    (* Public Methods *)
-
    ///<summary>Process a messge</summary>
    abstract member Receive : 'a -> unit
 
    ///<summary>Shutdown this actor</summary>
    member public this.Shutdown() = (this :> IActor).Post Messages.Die
-      
 
    interface IActor with
       member this.Post msg = this._mailbox.Post msg
