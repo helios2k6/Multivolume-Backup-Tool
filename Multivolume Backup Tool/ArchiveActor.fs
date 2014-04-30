@@ -15,8 +15,7 @@ type ArchiveMessage = { ArchiveFile : String; Files : seq<String> }
 type ArchiveResult = 
    | UnableToOpenArchiveFile of String
    | UnableToOpenSourceFile of String
-   | OutOfSpace
-   | UnknownError
+   | UnknownError of Exception
    | Success
 
 ///<summary>The response message from the ArchiveActor</summary>
@@ -26,8 +25,9 @@ exception private ArchiveFileOpenException of String
 
 exception private SourceFileOpenException of String
 
-exception private WriterFactoryException
+exception private WriterFactoryException of Exception
 
+///<summary>An actor that archives files</summary>
 type ArchiveActor() =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>()
 
@@ -46,7 +46,7 @@ type ArchiveActor() =
       try
          WriterFactory.Open(archiveFileStream, ArchiveType.Tar, CompressionType.None)
       with
-         | _ -> raise WriterFactoryException
+         | ex -> raise (WriterFactoryException(ex))
 
    member private this.OpenSourceFile sourceFile =
       try
@@ -62,8 +62,8 @@ type ArchiveActor() =
       with
          | ArchiveFileOpenException(file) -> UnableToOpenArchiveFile(file)
          | SourceFileOpenException(file) -> UnableToOpenSourceFile(file)
-         | WriterFactoryException -> UnknownError
-         | _ -> UnknownError
+         | WriterFactoryException(ex) -> UnknownError(ex)
+         | ex -> UnknownError(ex)
 
    override this.Receive sender msg state = 
       match msg with

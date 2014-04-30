@@ -74,6 +74,7 @@
     <Compile Include="OutputActor.fs" />
     <Compile Include="AppConfigActor.fs" />
     <Compile Include="ArchiveActor.fs" />
+    <Compile Include="BackupActor.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
