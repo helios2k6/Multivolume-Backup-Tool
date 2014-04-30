@@ -28,8 +28,8 @@ exception private SourceFileOpenException of String
 exception private WriterFactoryException of Exception
 
 ///<summary>An actor that archives files</summary>
-type ArchiveActor() =
-   inherit ActorBase<ArchiveMessage, UnitPlaceHolder>()
+type ArchiveActor(parent : IActor) =
+   inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
    member private this.ArchiveFile (archiveFileWriter : IWriter) file = 

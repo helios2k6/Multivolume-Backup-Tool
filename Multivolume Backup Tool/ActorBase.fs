@@ -30,7 +30,7 @@ open MBT.Operations
 
 ///<summary>The base class for all actors</summary>
 [<AbstractClass>]
-type ActorBase<'msg, 'state>() = 
+type ActorBase<'msg, 'state>(parent : IActor) = 
    (* Fields *)
    member private this._mailbox = MailboxProcessor.Start (this.InputLoop (this.PreStart()))
    

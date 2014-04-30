@@ -11,8 +11,8 @@ type BackupMessage =
 
 type BackupActorState = { FilesBackedUp : Set<String>; BackupActor : IActor option }
 
-type BackupActor() =
-   inherit ActorBase<BackupMessage, BackupActorState>()
+type BackupActor(parent : IActor) =
+   inherit ActorBase<BackupMessage, BackupActorState>(parent)
 
    (* Private Methods *)
    member private this.BackupFiles state = state
