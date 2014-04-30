@@ -70,9 +70,7 @@
     <Compile Include="OutsideActor.fs" />
     <Compile Include="Messages.fs" />
     <Compile Include="ActorBase.fs" />
-    <Compile Include="InputActor.fs" />
     <Compile Include="AppConfigActor.fs" />
-    <Compile Include="UserReconfigureActor.fs" />
     <Compile Include="ArchiveActor.fs" />
     <Compile Include="BackupActor.fs" />
     <Compile Include="Program.fs" />
