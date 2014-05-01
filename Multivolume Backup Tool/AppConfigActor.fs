@@ -66,24 +66,24 @@ type AppConfigActor(parent : IActor, inputActor : IActor, config : ApplicationCo
    override this.Receive sender msg state =
       match msg with
       | GetConfig -> 
-         sender +! { Sender = this; Payload = state }
+         sender +! { Sender = this; Payload = Configuration(state) }
          state
       | SetConfig(newConfig) -> newConfig
       | ReconfigureArchiveFilePath(promptOpt) -> 
          let reconfiguredState = this.DispatchReconfiguration promptOpt state this.ReconfigureArchiveFilePath
-         sender +! { Sender = this; Payload = reconfiguredState }
+         sender +! { Sender = this; Payload = Configuration(reconfiguredState) }
          reconfiguredState
       | ReconfigureFolders(promptOpt) -> 
          let reconfiguredState = this.DispatchReconfiguration promptOpt state this.ReconfigureArchiveFolders
-         sender +! { Sender = this; Payload = reconfiguredState }
+         sender +! { Sender = this; Payload = Configuration(reconfiguredState) }
          reconfiguredState
       | ReconfigureBlacklist(promptOpt) -> 
          let reconfiguredState = this.DispatchReconfiguration promptOpt state this.ReconfigureBlacklist
-         sender +! { Sender = this; Payload = reconfiguredState }
+         sender +! { Sender = this; Payload = Configuration(reconfiguredState) }
          reconfiguredState
       | ReconfigureWhitelist(promptOpt) -> 
          let reconfiguredState = this.DispatchReconfiguration promptOpt state this.ReconfigureWhitelist
-         sender +! { Sender = this; Payload = reconfiguredState }
+         sender +! { Sender = this; Payload = Configuration(reconfiguredState) }
          reconfiguredState
 
    override this.PreStart() = config

@@ -64,7 +64,7 @@ type KnapsackActor(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | Calculate(archivePath, files) -> 
-         sender +! { Sender = this; Payload = (this.Solve archivePath files) }
+         sender +! { Sender = this; Payload = KnapsackResponse.Files((this.Solve archivePath files)) }
          Hold
 
    override this.PreStart() = Hold

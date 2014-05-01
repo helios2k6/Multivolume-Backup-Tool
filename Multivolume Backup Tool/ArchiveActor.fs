@@ -32,16 +32,6 @@ open SharpCompress.Writer
 open System
 open System.IO
 
-///<summary>Archive result object</summary>
-type ArchiveResult = 
-   | UnableToOpenArchiveFile of String
-   | UnableToOpenSourceFile of String
-   | UnknownError of Exception
-   | Success
-
-///<summary>The response message from the ArchiveActor</summary>
-type ArchiveResponseMessage = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
-
 exception private ArchiveFileOpenException of String
 
 exception private SourceFileOpenException of String

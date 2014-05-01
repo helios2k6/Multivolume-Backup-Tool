@@ -41,6 +41,16 @@ type BackupMessage =
 ///<summary>A message that can be sent to an ArchiveActor</summary>
 type ArchiveMessage = { ArchiveFile : String; Files : seq<String> }
 
+///<summary>Archive result object</summary>
+type ArchiveResult = 
+   | UnableToOpenArchiveFile of String
+   | UnableToOpenSourceFile of String
+   | UnknownError of Exception
+   | Success
+
+///<summary>The response message from the ArchiveActor</summary>
+type ArchiveResponseMessage = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
+
 ///<summary>The messages you can send to an AppConfigActor</summary>
 type AppConfigMessage = 
    ///<summary>Requests an ApplicationConfiguration record</summary>
@@ -56,7 +66,17 @@ type AppConfigMessage =
    ///<summary>Reconfigure the whitelist</summary>
    | ReconfigureWhitelist of String option
 
+///<summary>The response from the Application Configuration Actor</summary>
+type AppConfigResponse = Configuration of ApplicationConfiguration
+
 ///<summary>The messages you can send to the Knapsack Actor</summary>
 type KnapsackMessage = Calculate of String * seq<String>
 
+///<summary>The response message sent from the Knapsack Actor</summary>
+type KnapsackResponse = Files of seq<String>
+
+///<summary>The messages you can send to the File Chooser Actor</summary>
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
+
+///<summary>The response message from the File Chooser Actor</summary>
+type FileChooserResponse = Files of seq<String>
