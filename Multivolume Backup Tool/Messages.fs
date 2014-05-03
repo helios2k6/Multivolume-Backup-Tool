@@ -31,8 +31,8 @@ open System
 (* The death message. It is sent to actors on shutdown *)
 type DeathNote = Die
 
-///<summary>The messages you can send to an AppConfigActor</summary>
-type AppConfigMessage = 
+///<summary>The messages you can send to an Configuration Manager</summary>
+type ConfigurationMessage = 
    ///<summary>Requests an ApplicationConfiguration record</summary>
    | GetConfig
    ///<summary>Requests that the the new ApplicationConfiguration be set</summary>
@@ -46,37 +46,71 @@ type AppConfigMessage =
    ///<summary>Reconfigure the whitelist</summary>
    | ReconfigureWhitelist of String option
 
-///<summary>The response from the Application Configuration Actor</summary>
-type AppConfigResponse = Configuration of ApplicationConfiguration
+///<summary>The response from the Configuration Manager</summary>
+type ConfigurationResponse = Configuration of ApplicationConfiguration
 
-///<summary>The messages you can send to the Knapsack Actor</summary>
+///<summary>The messages you can send to the Knapsack Solver</summary>
 type KnapsackMessage = Calculate of String * seq<String>
 
-///<summary>The response message sent from the Knapsack Actor</summary>
+///<summary>The response message sent from the Knapsack Solver</summary>
 type KnapsackResponse = Files of seq<String>
 
-///<summary>The messages you can send to the File Chooser Actor</summary>
+///<summary>The messages you can send to the File Chooser</summary>
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 
-///<summary>The response message from the File Chooser Actor</summary>
+///<summary>The response message from the File Chooser</summary>
 type FileChooserResponse = Files of seq<String>
 
-///<summary>A message that can be sent to an ArchiveActor</summary>
-type ArchiveMessage = { ArchiveFile : String; Files : seq<String> }
+///<summary>A message that can be sent to an Archiver</summary>
+type ArchiveMessage = { ArchiveFilePath : String; Files : seq<String> }
 
 ///<summary>Archive result object</summary>
 type ArchiveResult = 
-   | UnableToOpenArchiveFile of String
+   | UnableToOpenArchiveFilePath of String
    | UnableToOpenSourceFile of String
    | UnknownError of Exception
    | Success
 
-///<summary>The response message from the ArchiveActor</summary>
+///<summary>The response message from the Archiver</summary>
 type ArchiveResponse = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
 
-///<summary>The messages you can send the backup actor</summary>
+///<summary>The messages you can send the Backup Manager</summary>
 type BackupMessage = 
-   | Start
+   | Start 
    | SetArchiveActor of IActor
    | SetKnapsackActor of IActor
    | SetBackupErrorActor of IActor
+   | SetFileChooser of IActor
+   | SetApplicationConfiguration of ApplicationConfiguration
+
+///<summary>The response message from the Backup Manager</summary>
+type BackupResponse =
+   | Success
+   | FailureArchiverNotSet
+   | FailureKnapsackSolverNotSet
+   | FailureFileChooserNotSet
+   | FailureArchiveFilePathNotSet
+   | FailureBackupErrorHandlerNotSet
+   | FailureAbort of Exception option
+
+///<summary>The messages you can send to the Backup Error Handler</summary>
+type BackupErrorHandlerMessage =
+   ///<summary>Cannot open the archive file path message. Pass the file path as a string</summary>
+   | CannotOpenArchiveFilePath of String
+   ///<summary>Cannot copy a file to the archive file path due to an IO error (except out of disk space errors)</summary>
+   | CannotCopyFileToArchivePath of String
+   ///<summary>Out of space errors</summary>
+   | OutOfSpace of String
+
+///<summary>The responses from the Backup Error Handler</summary>
+type BackupErrorHandlerResponse =
+   ///<summary>Abort the program</summary>
+   | Abort
+   ///<summary>Retry the file or folder path</summary>
+   | Retry
+   ///<summary>Skip the file</summary>
+   | Skip
+   ///<summary>Replace the volume to which the archive file path points to</summary>
+   | ReplaceVolume
+   ///<summary>Ask user for a new file path</summary>
+   | AskForNewArchiveFilePath

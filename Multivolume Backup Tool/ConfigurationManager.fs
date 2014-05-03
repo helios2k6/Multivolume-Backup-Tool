@@ -30,7 +30,7 @@ open System
 
 ///<summary>Holds the ApplicationConfiguration for the program</summary>
 type ConfigurationManager(parent : IActor, inputActor : IActor, config : ApplicationConfiguration) =
-   inherit ActorBase<AppConfigMessage, ApplicationConfiguration>(parent)
+   inherit ActorBase<ConfigurationMessage, ApplicationConfiguration>(parent)
 
    (* Private Methods *)
    member private this.ReconfigureListImpl oldConfig prompt =

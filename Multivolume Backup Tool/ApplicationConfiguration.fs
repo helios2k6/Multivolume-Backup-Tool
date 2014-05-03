@@ -29,7 +29,8 @@ open System
 ///<summary>
 ///The application configuration according to the command line 
 ///</summary>
-type ApplicationConfiguration = { 
+type ApplicationConfiguration = 
+   { 
       ///<summary>The archive file path</summary>
       ArchiveFilePath : String; 
       ///<summary>The folders to archive</summary>

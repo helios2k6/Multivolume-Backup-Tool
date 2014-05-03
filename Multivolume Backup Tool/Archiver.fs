@@ -27,8 +27,6 @@ namespace MBT
 open MBT.Core
 open MBT.Operations
 open MBT.Messages
-open SharpCompress.Common
-open SharpCompress.Writer
 open System
 open System.IO
 
@@ -42,45 +40,6 @@ exception private WriterFactoryException of Exception
 type Archiver(parent : IActor) =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
-   (* Private Methods *)
-   member private this.ArchiveFile (archiveFileWriter : IWriter) file = 
-      let fileStream = File.OpenRead(file)
-      archiveFileWriter.Write(file, fileStream)
-
-   member private this.OpenArchiveFile archiveFile =
-      try
-         File.Open(archiveFile, FileMode.CreateNew, FileAccess.ReadWrite)
-      with
-         | _ -> raise (ArchiveFileOpenException(archiveFile))
-
-   member private this.CreateArchiveWriter archiveFileStream =
-      try
-         WriterFactory.Open(archiveFileStream, ArchiveType.Tar, CompressionType.None)
-      with
-         | ex -> raise (WriterFactoryException(ex))
-
-   member private this.OpenSourceFile sourceFile =
-      try
-         File.OpenRead(sourceFile)
-      with
-         | _ -> raise (SourceFileOpenException(sourceFile))
-
-   member private this.ArchiveFiles archiveFile files = 
-      try
-         use archiveFileWriter = this.OpenArchiveFile archiveFile |> this.CreateArchiveWriter
-         Seq.iter (fun file -> this.ArchiveFile archiveFileWriter file) files
-         Success
-      with
-         | ArchiveFileOpenException(file) -> UnableToOpenArchiveFile(file)
-         | SourceFileOpenException(file) -> UnableToOpenSourceFile(file)
-         | WriterFactoryException(ex) -> UnknownError(ex)
-         | ex -> UnknownError(ex)
-
-   override this.Receive sender msg state = 
-      match msg with
-      | { ArchiveMessage.ArchiveFile = archiveFile; ArchiveMessage.Files = files } -> 
-         let archiveResult = this.ArchiveFiles archiveFile files
-         sender +! { Message.Sender = this; Message.Payload = { ArchiveResponse.Result = archiveResult; ArchiveResponse.OriginalMessage = msg } }
-      Hold
+   override this.Receive sender msg state = Hold
 
    override this.PreStart() = Hold
