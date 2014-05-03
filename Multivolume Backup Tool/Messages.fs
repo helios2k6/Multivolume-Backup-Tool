@@ -31,26 +31,6 @@ open System
 (* The death message. It is sent to actors on shutdown *)
 type DeathNote = Die
 
-///<summary>The messages you can send the backup actor</summary>
-type BackupMessage = 
-   | Start
-   | SetArchiveActor of IActor
-   | SetKnapsackActor of IActor
-   | SetBackupErrorActor of IActor
-
-///<summary>A message that can be sent to an ArchiveActor</summary>
-type ArchiveMessage = { ArchiveFile : String; Files : seq<String> }
-
-///<summary>Archive result object</summary>
-type ArchiveResult = 
-   | UnableToOpenArchiveFile of String
-   | UnableToOpenSourceFile of String
-   | UnknownError of Exception
-   | Success
-
-///<summary>The response message from the ArchiveActor</summary>
-type ArchiveResponseMessage = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
-
 ///<summary>The messages you can send to an AppConfigActor</summary>
 type AppConfigMessage = 
    ///<summary>Requests an ApplicationConfiguration record</summary>
@@ -80,3 +60,23 @@ type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 
 ///<summary>The response message from the File Chooser Actor</summary>
 type FileChooserResponse = Files of seq<String>
+
+///<summary>A message that can be sent to an ArchiveActor</summary>
+type ArchiveMessage = { ArchiveFile : String; Files : seq<String> }
+
+///<summary>Archive result object</summary>
+type ArchiveResult = 
+   | UnableToOpenArchiveFile of String
+   | UnableToOpenSourceFile of String
+   | UnknownError of Exception
+   | Success
+
+///<summary>The response message from the ArchiveActor</summary>
+type ArchiveResponse = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
+
+///<summary>The messages you can send the backup actor</summary>
+type BackupMessage = 
+   | Start
+   | SetArchiveActor of IActor
+   | SetKnapsackActor of IActor
+   | SetBackupErrorActor of IActor

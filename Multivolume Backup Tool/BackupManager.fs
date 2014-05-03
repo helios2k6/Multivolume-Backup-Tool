@@ -37,11 +37,21 @@ type BackupActorState = {
    }
  
 ///<summary>The main actor in charge of backing up the system</summary>
-type BackupActor(parent : IActor) =
+type BackupManager(parent : IActor) =
    inherit ActorBase<BackupMessage, BackupActorState>(parent)
 
    (* Private Methods *)
    member private this.BackupFiles state = state
+   
+   member private this.HandleArchiveResponse msg state =
+      state
+
+   member private this.HandleFileChooserResponse msg state =
+      state
+
+   member private this.HandleKnapsackResponse msg state =
+      state
+
 
    (* Public Methods *)
    override this.Receive sender msg state =
@@ -52,3 +62,10 @@ type BackupActor(parent : IActor) =
       | Start -> this.BackupFiles state
 
    override this.PreStart() = { FilesBackedUp = Set.empty; BackupActor = None; KnapsackActor = None; BackupErrorActor = None }
+
+   override this.UnknownMessageHandler msg initialState =
+      match msg with
+      | :? ArchiveResponse as msg -> initialState
+      | :? FileChooserResponse as msg -> initialState
+      | :? KnapsackResponse as msg -> initialState
+      | _ -> initialState

@@ -32,7 +32,7 @@ open System.IO
 open System.Text.RegularExpressions
 
 ///<summary>Chooses which files to archive</summary>
-type FileChooserActor(parent : IActor) =
+type FileChooser(parent : IActor) =
    inherit ActorBase<FileChooserMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)

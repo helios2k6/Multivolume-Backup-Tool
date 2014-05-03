@@ -29,7 +29,7 @@ open MBT.Operations
 open System
 
 ///<summary>Holds the ApplicationConfiguration for the program</summary>
-type AppConfigActor(parent : IActor, inputActor : IActor, config : ApplicationConfiguration) =
+type ConfigurationManager(parent : IActor, inputActor : IActor, config : ApplicationConfiguration) =
    inherit ActorBase<AppConfigMessage, ApplicationConfiguration>(parent)
 
    (* Private Methods *)

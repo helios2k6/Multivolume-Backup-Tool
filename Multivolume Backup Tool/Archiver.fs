@@ -39,7 +39,7 @@ exception private SourceFileOpenException of String
 exception private WriterFactoryException of Exception
 
 ///<summary>An actor that archives files</summary>
-type ArchiveActor(parent : IActor) =
+type Archiver(parent : IActor) =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
@@ -80,7 +80,7 @@ type ArchiveActor(parent : IActor) =
       match msg with
       | { ArchiveMessage.ArchiveFile = archiveFile; ArchiveMessage.Files = files } -> 
          let archiveResult = this.ArchiveFiles archiveFile files
-         sender +! { Message.Sender = this; Message.Payload = { ArchiveResponseMessage.Result = archiveResult; ArchiveResponseMessage.OriginalMessage = msg } }
+         sender +! { Message.Sender = this; Message.Payload = { ArchiveResponse.Result = archiveResult; ArchiveResponse.OriginalMessage = msg } }
       Hold
 
    override this.PreStart() = Hold

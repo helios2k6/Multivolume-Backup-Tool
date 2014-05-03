@@ -46,7 +46,7 @@ type FileItemWrapper(item : String) =
    end
 
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
-type KnapsackActor(parent : IActor) =
+type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)

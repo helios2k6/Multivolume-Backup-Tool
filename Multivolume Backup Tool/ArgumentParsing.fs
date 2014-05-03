@@ -29,7 +29,7 @@ open CommandLine
 ///<summary>
 ///Parses arguments 
 ///</summary>
-type ArgumentParser() =
+type ArgumentParser =
    ///<summary>
    ///Static member that parses arguments
    ///</summary>
