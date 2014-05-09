@@ -53,7 +53,7 @@ type ConfigurationManager(parent : IActor, inputActor : IActor, config : Applica
    member private this.ReconfigureArchiveFilePath oldConfig =
       printfn "Type the path that you would like to save the new archive file to\n"
       let pathOfNewArchiveFile = Console.ReadLine()
-      { oldConfig with ArchiveFilePath = pathOfNewArchiveFile }
+      { oldConfig with ApplicationConfiguration.ArchiveFilePath = pathOfNewArchiveFile }
 
    member private this.DispatchReconfiguration (promptOpt : String option) oldConfig f =
       match promptOpt with

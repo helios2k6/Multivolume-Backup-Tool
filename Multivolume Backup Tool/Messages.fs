@@ -77,11 +77,6 @@ type ArchiveResponse = { Result : ArchiveResult; OriginalMessage : ArchiveMessag
 ///<summary>The messages you can send the Backup Manager</summary>
 type BackupMessage = 
    | Start 
-   | SetArchiveActor of IActor
-   | SetKnapsackActor of IActor
-   | SetBackupErrorActor of IActor
-   | SetFileChooser of IActor
-   | SetApplicationConfiguration of ApplicationConfiguration
 
 ///<summary>The response message from the Backup Manager</summary>
 type BackupResponse =
