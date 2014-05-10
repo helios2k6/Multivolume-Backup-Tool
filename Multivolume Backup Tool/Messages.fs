@@ -26,34 +26,11 @@ namespace MBT
 namespace MBT.Messages
 
 open MBT
+open Microsoft.FSharp.Collections
 open System
 
 (* The death message. It is sent to actors on shutdown *)
 type DeathNote = Die
-
-///<summary>The messages you can send to an Configuration Manager</summary>
-type ConfigurationMessage = 
-   ///<summary>Requests an ApplicationConfiguration record</summary>
-   | GetConfig
-   ///<summary>Requests that the the new ApplicationConfiguration be set</summary>
-   | SetConfig of ApplicationConfiguration
-   ///<summary>Reconfigure the archive file path</summary>
-   | ReconfigureArchiveFilePath of String option
-   ///<summary>Reconfigure the folders to archive</summary>
-   | ReconfigureFolders of String option
-   ///<summary>Reconfigure the blacklist</summary>
-   | ReconfigureBlacklist of String option
-   ///<summary>Reconfigure the whitelist</summary>
-   | ReconfigureWhitelist of String option
-
-///<summary>The response from the Configuration Manager</summary>
-type ConfigurationResponse = Configuration of ApplicationConfiguration
-
-///<summary>The messages you can send to the Knapsack Solver</summary>
-type KnapsackMessage = Calculate of String * seq<String>
-
-///<summary>The response message sent from the Knapsack Solver</summary>
-type KnapsackResponse = Files of seq<String>
 
 ///<summary>The messages you can send to the File Chooser</summary>
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
@@ -61,51 +38,38 @@ type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 ///<summary>The response message from the File Chooser</summary>
 type FileChooserResponse = Files of seq<String>
 
-///<summary>A message that can be sent to an Archiver</summary>
-type ArchiveMessage = { ArchiveFilePath : String; Files : seq<String> }
+///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
+type KnapsackMessage = Calculate of String * seq<String>
 
-///<summary>Archive result object</summary>
-type ArchiveResult = 
-   | UnableToOpenArchiveFilePath of String
-   | UnableToOpenSourceFile of String
-   | UnknownError of Exception
+///<summary>The result of the knapsack solver</summary>
+type KnapsackResponse = Files of seq<String>
+
+///<summary>A message that can be sent to an Archiver</summary>
+type ArchiveMessage = { ArchiveFilePath : String; Files : seq<String>; }
+
+///<summary>The result of attempting to backup a particular file</summary>
+type FileArchiveResult =
    | Success
+   | FailureUnableToOpen
+   | FailureOutOfSpace
 
 ///<summary>The response message from the Archiver</summary>
-type ArchiveResponse = { Result : ArchiveResult; OriginalMessage : ArchiveMessage }
+type ArchiveResponse = { BackedUpFiles : seq<String>; UnableToOpenFiles : seq<String>; FilesTooBig : seq<String> }
+
+///<summary>The message you can send to the Backup Continuation Manager</summary>
+type BackupContinuationMessage = { AllFiles : seq<String>; BackedUpFiles : seq<String>; ArchiveResponse : ArchiveResponse }
+
+///<summary>The responses from the Backup Continuation Manager</summary>
+type BackupContinuationResponse =
+   | Finished
+   | Abort
+   | IgnoreFiles of seq<String>
+   | ContinueProcessing
 
 ///<summary>The messages you can send the Backup Manager</summary>
-type BackupMessage = 
-   | Start 
+type BackupMessage = Start
 
 ///<summary>The response message from the Backup Manager</summary>
 type BackupResponse =
    | Success
-   | FailureArchiverNotSet
-   | FailureKnapsackSolverNotSet
-   | FailureFileChooserNotSet
-   | FailureArchiveFilePathNotSet
-   | FailureBackupErrorHandlerNotSet
-   | FailureAbort of Exception option
-
-///<summary>The messages you can send to the Backup Error Handler</summary>
-type BackupErrorHandlerMessage =
-   ///<summary>Cannot open the archive file path message. Pass the file path as a string</summary>
-   | CannotOpenArchiveFilePath of String
-   ///<summary>Cannot copy a file to the archive file path due to an IO error (except out of disk space errors)</summary>
-   | CannotCopyFileToArchivePath of String
-   ///<summary>Out of space errors</summary>
-   | OutOfSpace of String
-
-///<summary>The responses from the Backup Error Handler</summary>
-type BackupErrorHandlerResponse =
-   ///<summary>Abort the program</summary>
-   | Abort
-   ///<summary>Retry the file or folder path</summary>
-   | Retry
-   ///<summary>Skip the file</summary>
-   | Skip
-   ///<summary>Replace the volume to which the archive file path points to</summary>
-   | ReplaceVolume
-   ///<summary>Ask user for a new file path</summary>
-   | AskForNewArchiveFilePath
+   | Failure

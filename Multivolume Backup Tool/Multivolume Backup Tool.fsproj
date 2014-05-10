@@ -63,7 +63,6 @@
     <Compile Include="MessageOperations.fs" />
     <Compile Include="Messages.fs" />
     <Compile Include="ActorBase.fs" />
-    <Compile Include="ConfigurationManager.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="FileChooser.fs" />
     <Compile Include="KnapsackSolver.fs" />
