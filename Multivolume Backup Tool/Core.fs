@@ -27,3 +27,15 @@ namespace MBT.Core
 
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
+
+///<summary>A static class filled with constant strings</summary>
+type Constants() = 
+   ///<summary>The name of the file manifest file</summary>
+   static member FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"
+
+module Seq =
+   ///<summary>Turns one item into a sequence</summary>
+   let internal ToSeq item = seq { yield item }
+
+   ///<summary>Append one item to the end of a sequence</summary>
+   let internal AppendItem seq item = Seq.append seq (ToSeq item)

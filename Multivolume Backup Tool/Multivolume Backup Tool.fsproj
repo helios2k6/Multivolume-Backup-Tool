@@ -48,6 +48,10 @@
       <HintPath>..\Thirdparty\Knapsack.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -63,9 +67,11 @@
     <Compile Include="MessageOperations.fs" />
     <Compile Include="Messages.fs" />
     <Compile Include="ActorBase.fs" />
+    <Compile Include="ArchiveResolver.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="FileChooser.fs" />
     <Compile Include="KnapsackSolver.fs" />
+    <Compile Include="BackupContinuationManager.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />

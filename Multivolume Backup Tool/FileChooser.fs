@@ -64,7 +64,7 @@ type FileChooser(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | ChooseFiles(config) ->
-         sender +! { Sender = this; Payload = { FileChooserResponse.Files = this.ChooseFiles config; FileChooserResponse.Configuration = config } }
+         sender +! { Sender = this; Payload = FileChooserResponse.Files(this.ChooseFiles config) }
          Hold
 
    override this.PreStart() = Hold

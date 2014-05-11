@@ -29,17 +29,87 @@ open MBT.Operations
 open MBT.Messages
 open System
 open System.IO
+open System.Runtime.InteropServices
 
-exception private ArchiveFileOpenException of String
-
-exception private SourceFileOpenException of String
-
-exception private WriterFactoryException of Exception
+type private FileArchiveResult =
+   | Success of Map<String, String>
+   | FailedCouldNotReadFile
+   | FailedFileTooBig
+   | UnknownError of Exception
 
 ///<summary>An actor that archives files</summary>
 type Archiver(parent : IActor) =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
-   override this.Receive sender msg state = Hold
+   (* Private Static Fields *)
+   static member private DiskFullHResult = 0x70
+   static member private ErrorHandleDiskFullHResult = 0x27
+
+   (* Private Methods *)
+   member private this.AreFilesTheSame fileA fileB =
+      let fileASeq = this.ReadFileStreamToBytes fileA
+      let fileBSeq = this.ReadFileStreamToBytes fileB
+
+      let comparisonResult = Seq.compareWith (fun a b -> a - b) fileASeq fileBSeq
+      comparisonResult = 0 
+
+   member private this.CalculateArchiveFilePath archivePath fileToArchive =
+      let fileName = Path.GetFileName(fileToArchive)
+      Path.Combine(archivePath, fileName)
+
+   member private this.GenerateUniqueArchiveFilePath archivePath fileToArchive = 
+      let fileName = Path.GetFileNameWithoutExtension(fileToArchive)
+      let combinedPath = Path.Combine(archivePath, fileName)
+      let extension = Path.GetExtension(fileToArchive)
+
+      let rec fileNameGenerator (suffix : int) =
+         let generatedFilePath = Path.Combine(combinedPath, "_", suffix.ToString(), extension)
+
+         if File.Exists(generatedFilePath) then
+            fileNameGenerator (suffix + 1)
+         else
+            generatedFilePath
+
+      fileNameGenerator 1
+   
+   member private this.IsDiskOutOfSpace (ex : IOException) =
+      let hr = Marshal.GetHRForException(ex)
+      hr = Archiver.DiskFullHResult || hr = Archiver.ErrorHandleDiskFullHResult
+
+   member private this.TryCopy fileA fileB (fileManifest : Map<String, String>) =
+      try
+         File.Copy(fileA, fileB)
+         Success(fileManifest.Add(fileA, fileB))
+      with
+         | :? UnauthorizedAccessException as ex -> UnknownError(ex)
+         | :? ArgumentException as ex -> UnknownError(ex)
+         | :? PathTooLongException as ex -> UnknownError(ex)
+         | :? DirectoryNotFoundException as ex -> UnknownError(ex)
+         | :? FileNotFoundException as ex -> FailedCouldNotReadFile
+         | :? IOException as ex -> 
+            if this.IsDiskOutOfSpace ex then
+               FailedFileTooBig
+            else
+               FailedCouldNotReadFile
+         | :? NotSupportedException as ex -> UnknownError(ex)
+
+   member private this.ArchiveFile archiveFilePath filePath (fileManifest : Map<String, String>) =
+      let fileArchivePath = this.CalculateArchiveFilePath archiveFilePath filePath
+
+      //Check to see if the file exists
+      if File.Exists fileArchivePath then
+         //If the files are the same, then just return a new fileManifest
+         if this.AreFilesTheSame filePath fileArchivePath then
+            Success(fileManifest.Add(filePath, fileArchivePath))
+         else
+            //Files aren't the same, copy it to a different path
+            let uniqueFileName = this.GenerateUniqueArchiveFilePath archiveFilePath filePath
+            this.TryCopy filePath uniqueFileName fileManifest
+      else
+         this.TryCopy filePath fileArchivePath fileManifest
+
+   override this.Receive sender msg state =
+      let fileManifest = Map.empty
+      Hold
 
    override this.PreStart() = Hold
