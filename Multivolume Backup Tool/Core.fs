@@ -28,10 +28,9 @@ namespace MBT.Core
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
 
-///<summary>A static class filled with constant strings</summary>
-type Constants() = 
-   ///<summary>The name of the file manifest file</summary>
-   static member FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"
+///<summary>A module with constants defined for the program</summary>
+module Constants =
+   let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
 
 module Seq =
    ///<summary>Turns one item into a sequence</summary>

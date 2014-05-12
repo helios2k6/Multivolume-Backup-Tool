@@ -46,13 +46,6 @@ type Archiver(parent : IActor) =
    static member private ErrorHandleDiskFullHResult = 0x27
 
    (* Private Methods *)
-   member private this.AreFilesTheSame fileA fileB =
-      let fileASeq = this.ReadFileStreamToBytes fileA
-      let fileBSeq = this.ReadFileStreamToBytes fileB
-
-      let comparisonResult = Seq.compareWith (fun a b -> a - b) fileASeq fileBSeq
-      comparisonResult = 0 
-
    member private this.CalculateArchiveFilePath archivePath fileToArchive =
       let fileName = Path.GetFileName(fileToArchive)
       Path.Combine(archivePath, fileName)
