@@ -28,3 +28,11 @@ namespace MBT
 type IActor = 
    ///<summary>Post a message to the actor</summary>
    abstract member Post : obj -> unit
+
+///<summary>the "null actor"</summary>
+type NoActorSource private () =
+   interface IActor with
+      member this.Post msg = ()
+   end
+
+   static member public Instance = new NoActorSource()

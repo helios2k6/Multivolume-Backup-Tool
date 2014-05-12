@@ -75,7 +75,7 @@ type BackupResponse =
    | Failure
 
 ///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : seq<String> }
+type ArchiveResolverMessage = { ArchiveFilePath : String; Files : seq<String>; Client : IActor }
 
 ///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { FileManifest : Map<String, String>; Files : seq<String> } 
+type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : seq<String>; Client : IActor } 

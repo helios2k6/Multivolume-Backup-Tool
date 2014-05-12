@@ -45,7 +45,7 @@ type ActorBase<'msg, 'state>(parent : IActor) =
                this.ShutdownActor state
                return ()
             | :? Message as rMsg -> return! this.HandleMessage rMsg state |> loop
-            | unkMsg -> return! this.UnknownMessageHandler unkMsg state |> loop
+            | unkMsg -> return! this.UnknownMessageHandler NoActorSource.Instance unkMsg state |> loop
 
          }
       loop initialState
@@ -55,7 +55,7 @@ type ActorBase<'msg, 'state>(parent : IActor) =
       | { Message.Sender = sender; Message.Payload = payload } -> 
          match payload with
          | :? 'msg as aMsg -> this.Receive sender aMsg state
-         | unkMsg -> this.UnknownMessageHandler unkMsg state
+         | unkMsg -> this.UnknownMessageHandler sender unkMsg state
 
    member private this.ShutdownActor state = this.PreShutdown state
 
@@ -67,8 +67,8 @@ type ActorBase<'msg, 'state>(parent : IActor) =
    abstract member PreStart : unit -> 'state
 
    ///<summary>Handles an unknown message</summary>
-   abstract member UnknownMessageHandler : obj -> 'state -> 'state
-   default this.UnknownMessageHandler msg initialState = initialState
+   abstract member UnknownMessageHandler : IActor -> obj -> 'state -> 'state
+   default this.UnknownMessageHandler sender msg initialState = initialState
 
    ///<summary>The function called prior to shutting down the actor</summary>
    abstract member PreShutdown : 'state -> unit

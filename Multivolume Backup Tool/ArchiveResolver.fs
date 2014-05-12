@@ -66,11 +66,11 @@ type ArchiveResolver(parent : IActor) =
 
       (newFileManifest, filesToArchive)
 
-   member private this.SendEmptyResponse (sender : IActor) files =
-      sender +! { Sender = this; Payload = { FileManifest = Map.empty; Files = files } }
+   member private this.SendEmptyResponse (sender : IActor) archiveFilePath files client =
+      sender +! { Sender = this; Payload = { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; Client = client } }
    
-   member private this.SendUpdatedManifest (sender : IActor) manifest files =
-      sender +! { Sender = this; Payload = { FileManifest = manifest; Files = files }}
+   member private this.SendUpdatedManifest (sender : IActor) archiveFilePath manifest files client =
+      sender +! { Sender = this; Payload = { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; Client = client } }
 
    (* Public Methods *)
    override this.Receive sender msg state =
@@ -78,8 +78,8 @@ type ArchiveResolver(parent : IActor) =
       match existingManifestFile with
       | Some(manifestFile) -> 
          let newFileManifestAndProcessedFiles = this.ProcessExistingArchive manifestFile msg.Files
-         this.SendUpdatedManifest sender (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)
-      | None -> this.SendEmptyResponse sender msg.Files
+         this.SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles) msg.Client
+      | None -> this.SendEmptyResponse sender msg.ArchiveFilePath msg.Files msg.Client
 
       Hold
 

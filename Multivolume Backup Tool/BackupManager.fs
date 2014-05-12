@@ -57,7 +57,7 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) =
    member private this.HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
-         this._archiver +! { Sender = this; Payload = { ArchiveFilePath = config.ArchiveFilePath; Files = files; } }
+         this._archiver +! { Sender = this; Payload = { ArchiveMessage.ArchiveFilePath = config.ArchiveFilePath; ArchiveMessage.Files = files; } }
          initialState
    
    member private this.PromptUserToSwitchVolumes() =
@@ -93,7 +93,7 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) =
 
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty }
 
-   override this.UnknownMessageHandler msg initialState =
+   override this.UnknownMessageHandler sender msg initialState =
       match msg with
       | :? FileChooserResponse as response -> this.HandleFileChooserResponse response initialState
       | :? KnapsackResponse as response -> this.HandleKnapsackMessage response initialState
