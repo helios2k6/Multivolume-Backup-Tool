@@ -81,7 +81,7 @@ type BackupContinuationManager(parent : IActor) =
 
    member private this.PromptUserForVolumeChange() =
       printfn "Prepare the next volume and then hit any key..."
-      ignore (Console.ReadKey())
+      Console.ReadKey() |> ignore
    
    member private this.HandleNoErrorsState sender msg = 
       this.PromptUserForVolumeChange()

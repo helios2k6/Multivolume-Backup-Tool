@@ -22,19 +22,28 @@
  * THE SOFTWARE.
  *)
 
+namespace MBT
 
-open MBT
-open CommandLine
-open CommandLine.Text
+open Microsoft.FSharp.Control
+open System
 
-[<EntryPoint>]
-let main argv = 
-   let parsedArgs = ArgumentParser.ParseArguments argv
+type private HypervisorMessages =
+   | Start
+   | Submit of ApplicationConfiguration
+   | Flush
+   | Shutdown
 
-   if parsedArgs.State.Errors.Count > 0 then
-      ArgumentParser.PrintHelp parsedArgs
-   else
-      let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
-      ()
-      
-   0 // return an integer exit code
+type Hypervisor() =
+   (* Private Methods *)
+   member private this.HandleHypervisorMessage msg = ()
+   member private this.HandleBackupResponse msg = ()
+
+   (* Public Methods *)
+   member this.Start() = ()
+   member this.Submit appConfig = ()
+   member this.Shutdown() = ()
+   member this.AwaitTermination() = ()
+
+   interface IActor with
+      member this.Post msg = ()
+   end

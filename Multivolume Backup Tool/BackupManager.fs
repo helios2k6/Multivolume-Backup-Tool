@@ -31,11 +31,7 @@ open Microsoft.FSharp.Collections
 open System
 
 ///<summary>The backup manager's state object</summary>
-type BackupManagerState = 
-   { 
-      AllFiles : seq<String>;
-      ProcessedFiles : seq<String>;
-   }
+type BackupManagerState = { AllFiles : seq<String>; ProcessedFiles : seq<String>; }
 
 ///<summary>The main actor in charge of backing up the system</summary>
 type BackupManager(parent : IActor, config : ApplicationConfiguration) =

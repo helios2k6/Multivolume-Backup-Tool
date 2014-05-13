@@ -73,6 +73,7 @@
     <Compile Include="KnapsackSolver.fs" />
     <Compile Include="BackupContinuationManager.fs" />
     <Compile Include="BackupManager.fs" />
+    <Compile Include="Hypervisor.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
