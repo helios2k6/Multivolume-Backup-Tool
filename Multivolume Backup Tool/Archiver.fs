@@ -29,6 +29,7 @@ open MBT.Core
 open MBT.Operations
 open MBT.Messages
 open System
+open System.Collections.Generic
 open System.IO
 open System.Runtime.InteropServices
 
@@ -42,14 +43,23 @@ type private FileArchiveResult =
 type Archiver(parent : IActor) =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
+   let (|KeyOnly|) (kvp : KeyValuePair<_, _>) = kvp.Key
+
    (* Private Static Fields *)
    static member private DiskFullHResult = 0x70
    static member private ErrorHandleDiskFullHResult = 0x27
 
+   (* Private Fields *)
+   member private this._archiveResolver = new ArchiveResolver(this)
+
    (* Private Methods *)
+   member private this.RerootPath filePath newRoot =
+      let pathRoot = Path.GetPathRoot(filePath)
+      let derootedPath = pathRoot.Replace(pathRoot, String.Empty)
+      Path.Combine(newRoot, derootedPath)
+
    member private this.CalculateArchiveFilePath archivePath fileToArchive =
-      let fileName = Path.GetFileName(fileToArchive)
-      let archivePath = Path.Combine(archivePath, fileName)
+      let archivePath = this.RerootPath archivePath fileToArchive
       if archivePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
          let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive)
          let ext = Path.GetExtension(fileToArchive)
@@ -98,19 +108,35 @@ type Archiver(parent : IActor) =
       let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
       File.WriteAllText(manifestFilePath, serializedContext)
    
-   member private this.GetFilesTooLarge fileArchiveResultMap =
-      ()
+   member private this.FilterForResult (fileArchiveResultMap : Map<String, FileArchiveResult>) result =
+      fileArchiveResultMap
+      |> Seq.filter (fun tuple -> tuple.Value = result)
+      |> Seq.map (|KeyOnly|)
 
-   member private this.GetFilesUnableToOpen fileArchiveResultMap =
-      ()
+   member private this.GetFilesTooLarge (fileArchiveResultMap : Map<String, FileArchiveResult>) =
+      this.FilterForResult fileArchiveResultMap FailedFileTooBig
 
-   member private this.GetBackedUpFiles fileArchiveResultMap =
-      ()
+   member private this.GetFilesUnableToOpen (fileArchiveResultMap : Map<String, FileArchiveResult>) =
+      this.FilterForResult fileArchiveResultMap FailedCouldNotReadFile
+
+   member private this.GetBackedUpFiles (fileArchiveResultMap : Map<String, FileArchiveResult>) =
+      let matchUp (tuple : KeyValuePair<_, _>) = match tuple.Value with
+                                                 | Success(_) -> true
+                                                 | _ -> false
+
+      fileArchiveResultMap
+      |> Seq.filter matchUp
+      |> Seq.map (|KeyOnly|)
 
    member private this.FormArchiveResponse fileManifest fileArchiveResultMap =
-      ()
+      let backedUpFiles = this.GetBackedUpFiles fileArchiveResultMap
+      let unableToOpen = this.GetFilesUnableToOpen fileArchiveResultMap
+      let filesTooBig = this.GetFilesTooLarge fileArchiveResultMap
+
+      { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg state =
+      this._archiveResolver +! { Sender = this; Payload = { ArchiveResolverMessage.ArchiveFilePath = msg.ArchiveFilePath; ArchiveResolverMessage.Files = msg.Files; ArchiveResolverMessage.Client = sender } }
       Hold
 
    override this.PreStart() = Hold
@@ -119,8 +145,10 @@ type Archiver(parent : IActor) =
       match msg with
       | :? ArchiveResolverResponse as response -> 
          let archiveResult = this.HandleArchiveResolverResponse response
-         
-         ()
+         let fileManifest = fst archiveResult
+         let archiveResultMap = snd archiveResult
+         let archiveResponse = this.FormArchiveResponse fileManifest archiveResultMap
+         response.Client +! { Sender = this; Payload = archiveResponse }
       | _ -> ()
 
       Hold
