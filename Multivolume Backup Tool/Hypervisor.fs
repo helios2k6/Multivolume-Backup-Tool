@@ -24,26 +24,54 @@
 
 namespace MBT
 
+open MBT.Core
+open MBT.Messages
+open MBT.Operations
 open Microsoft.FSharp.Control
 open System
 
-type private HypervisorMessages =
+type private BackupStatus = 
+   | AwaitingStart
+   | InProgress
+   | Finished
+   | Failed
+
+type private HypervisorState = { Status : BackupStatus }
+
+type private ExternalRequest =
    | Start
-   | Submit of ApplicationConfiguration
-   | Flush
-   | Shutdown
+   | Wait of AsyncReplyChannel<unit>
+   | Stop
 
-type Hypervisor() =
+type private HypervisorInternalMessage = 
+   | External of ExternalRequest
+   | Internal of BackupResponse
+
+type Hypervisor(appConfig : ApplicationConfiguration) =
+   (* Private Fields *)
+   member private this._mailbox = MailboxProcessor.Start this.MessageLoop
+
    (* Private Methods *)
-   member private this.HandleHypervisorMessage msg = ()
-   member private this.HandleBackupResponse msg = ()
+   member private this.HandleExternalRequest request =
+      match request with
+      | Start -> ()
+      | Wait(replyChannel) -> ()
+      | Stop -> ()
 
-   (* Public Methods *)
-   member this.Start() = ()
-   member this.Submit appConfig = ()
-   member this.Shutdown() = ()
-   member this.AwaitTermination() = ()
+   member private this.MessageLoop (inbox : MailboxProcessor<HypervisorInternalMessage>) =
+      let rec loop state = 
+         async {
+            let! msg = inbox.Receive()
+
+            match msg with
+            | External(request) -> ()
+            | Internal(response) -> return! loop state
+         }
+      loop { Status = AwaitingStart }
 
    interface IActor with
-      member this.Post msg = ()
+      member this.Post msg = 
+         match msg with
+         | :? HypervisorInternalMessage as msg -> this._mailbox.Post msg
+         | _ -> ()
    end

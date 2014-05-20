@@ -89,6 +89,12 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) =
 
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty }
 
+   override this.PreShutdown state =
+      this._archiver +! { Sender = this; Payload = Die } 
+      this._continuationManager +! { Sender = this; Payload = Die } 
+      this._fileChooser +! { Sender = this; Payload = Die } 
+      this._knapsackSolver +! { Sender = this; Payload = Die } 
+
    override this.UnknownMessageHandler sender msg initialState =
       match msg with
       | :? FileChooserResponse as response -> this.HandleFileChooserResponse response initialState
