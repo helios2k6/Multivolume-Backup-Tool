@@ -86,8 +86,8 @@ type Archiver(parent : IActor) =
          | :? IOException as ex -> this.HandleIOException ex
          | :? NotSupportedException as ex -> UnknownError(ex)
 
-   member private this.ArchiveFile archiveFilePath filePath (fileManifest : Map<String, String>) =
-      (Success(fileManifest))
+   member private this.ArchiveFile archiveFilePath filePath (fileManifest : Map<String, String>) = 
+      (this.CalculateArchiveFilePath archiveFilePath filePath |> this.TryCopy filePath) fileManifest
 
    member private this.HandleArchiveResolverResponse (response : ArchiveResolverResponse) =
       let foldFunc (state : Map<String, String> * Map<String, FileArchiveResult>) file =

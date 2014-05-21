@@ -26,15 +26,27 @@
 open MBT
 open CommandLine
 open CommandLine.Text
+open Microsoft.FSharp.Control
+
+type private WaitAgentState = 
+   | Waiting
+   | Done
+
+type private Message =
+   | Callback
+   | Wait
 
 [<EntryPoint>]
 let main argv = 
    let parsedArgs = ArgumentParser.ParseArguments argv
 
-   if parsedArgs.State.Errors.Count > 0 then
+   if parsedArgs.State <> null && parsedArgs.State.Errors.Count > 0 then
       ArgumentParser.PrintHelp parsedArgs
    else
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
-      ()
+      let hypervisor = new Hypervisor(appConfig)
       
+      hypervisor.Start()
+      hypervisor.Wait (fun () -> hypervisor.Shutdown())
+
    0 // return an integer exit code

@@ -35,7 +35,7 @@ type CommandLineArguments() =
    ///<summary>
    ///The path to the main archive
    ///</summary>
-   [<OptionArray("archive-path", Required = true, HelpText = "The path to the main archive folder")>]
+   [<Option("archive-path", Required = true, HelpText = "The path to the main archive folder")>]
    member val ArchiveFilePath = String.Empty with get, set
 
    ///<summary>

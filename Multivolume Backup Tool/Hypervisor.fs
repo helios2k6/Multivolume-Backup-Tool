@@ -30,48 +30,101 @@ open MBT.Operations
 open Microsoft.FSharp.Control
 open System
 
-type private BackupStatus = 
-   | AwaitingStart
-   | InProgress
-   | Finished
-   | Failed
+type private Callback = unit -> unit
 
-type private HypervisorState = { Status : BackupStatus }
+type private HypervisorState = 
+   | InitialState 
+   | StartState 
+   | WaitingState of Callback
+   | FinishedState of BackupResponse
+   | ShutdownState
 
-type private ExternalRequest =
+type private ExternalRequest = 
    | Start
-   | Wait of AsyncReplyChannel<unit>
-   | Stop
+   | Wait of Callback
+   | Shutdown
 
-type private HypervisorInternalMessage = 
-   | External of ExternalRequest
+type private HypervisorMessage = 
    | Internal of BackupResponse
-
+   | External of ExternalRequest
+   
 type Hypervisor(appConfig : ApplicationConfiguration) =
+   let (|IsShutdownState|) state =
+      match state with
+      | ShutdownState -> true
+      | _ -> false
+
    (* Private Fields *)
-   member private this._mailbox = MailboxProcessor.Start this.MessageLoop
+   member private this._backupManager = new BackupManager(this, appConfig)
+   member private this._mailbox = MailboxProcessor.Start this.InternalMessageLoop
 
    (* Private Methods *)
-   member private this.HandleExternalRequest request =
-      match request with
-      | Start -> ()
-      | Wait(replyChannel) -> ()
-      | Stop -> ()
+   member private this.HandleInitialStateMessage msg state =
+      match msg with
+      | External(request) -> 
+         match request with
+         | Start -> 
+            this._backupManager +! { Sender = this; Payload = BackupMessage.Start }
+            StartState
+         | Shutdown -> ShutdownState
+         | _ -> state
+      | _ -> state
 
-   member private this.MessageLoop (inbox : MailboxProcessor<HypervisorInternalMessage>) =
-      let rec loop state = 
+   member private this.HandleStartStateMessage msg state = 
+      match msg with
+      | External(request) ->
+         match request with
+         | Wait(callback) -> WaitingState(callback)
+         | _ -> state
+      | Internal(response) -> FinishedState(response)
+
+   member private this.HandleWaitingStateMessage msg state = 
+      match msg with
+      | Internal(response) -> 
+         match state with
+         | WaitingState(callback) -> 
+            callback()
+            FinishedState(response)
+         | _ -> state
+      | _ -> state
+
+   member private this.HandleFinishedStateMessage msg state = 
+      match msg with
+      | External(request) -> 
+         match request with
+         | Wait(callback) -> 
+            callback()
+            ShutdownState
+         | Shutdown -> ShutdownState
+         | _ -> state
+      | _ -> state
+
+   member private this.InternalMessageLoop (inbox : MailboxProcessor<HypervisorMessage>) = 
+      let rec loop state =
          async {
-            let! msg = inbox.Receive()
+            if (|IsShutdownState|) state then return ()
+            else
+               let! msg = inbox.Receive()
 
-            match msg with
-            | External(request) -> ()
-            | Internal(response) -> return! loop state
+               match state with
+               | InitialState -> return! this.HandleInitialStateMessage msg state |> loop 
+               | StartState -> return! this.HandleStartStateMessage msg state |> loop 
+               | WaitingState(callback) -> return! this.HandleWaitingStateMessage msg state |> loop 
+               | FinishedState(result) -> return! this.HandleFinishedStateMessage msg state |> loop
+               | ShutdownState -> return ()
          }
-      loop { Status = AwaitingStart }
+
+      loop InitialState
+
+   (* Public Methods *)
+   member public this.Start() = Start |> (this :> IActor).Post
+   member public this.Wait (callback : (unit -> unit)) = Wait(callback) |> (this :> IActor).Post
+   member public this.Shutdown() = Shutdown |> (this :> IActor).Post
 
    interface IActor with
       member this.Post msg = 
          match msg with
-         | :? HypervisorInternalMessage as msg -> this._mailbox.Post msg
+         | :? BackupResponse as response -> Internal(response) |> this._mailbox.Post
+         | :? ExternalRequest as request -> External(request) |> this._mailbox.Post
          | _ -> ()
-   end
+   end 
