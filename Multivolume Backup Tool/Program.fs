@@ -34,7 +34,29 @@ type private WaitAgentState =
 
 type private Message =
    | Callback
-   | Wait
+   | Wait of AsyncReplyChannel<unit>
+
+let private AgentLoop (inbox : MailboxProcessor<Message>)=
+   let rec loop (state : WaitAgentState) =
+      async {
+         let! msg = inbox.Receive()
+
+         match msg with
+         | Callback -> return! loop Done
+         | Wait (replyChannel) ->
+            match state with
+            | Waiting -> 
+               let rec innerLoop() =
+                  async {
+                     let! nextMsg = inbox.Receive()
+                     match nextMsg with
+                     | Callback -> replyChannel.Reply()
+                     | _ -> return! innerLoop()
+                  }
+               do! innerLoop()
+            | Done -> replyChannel.Reply()
+      }
+   loop Waiting
 
 [<EntryPoint>]
 let main argv = 
@@ -46,7 +68,10 @@ let main argv =
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
       let hypervisor = new Hypervisor(appConfig)
       
-      hypervisor.Start()
-      hypervisor.Wait (fun () -> hypervisor.Shutdown())
+      let waitAgent = MailboxProcessor.Start AgentLoop
+      hypervisor.Begin()
+      hypervisor.Wait (fun () -> waitAgent.Post Callback)
+
+      waitAgent.PostAndReply(fun channel -> Wait(channel))
 
    0 // return an integer exit code

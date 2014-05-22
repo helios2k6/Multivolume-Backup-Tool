@@ -80,12 +80,17 @@ type BackupContinuationManager(parent : IActor) =
    member private this.CalculateRemainingFiles allFiles processedFiles = Set.toSeq (Set.difference (Set.ofSeq allFiles) (Set.ofSeq processedFiles))
 
    member private this.PromptUserForVolumeChange() =
-      printfn "Prepare the next volume and then hit any key..."
+      printf "Prepare the next volume and then hit any key..."
       Console.ReadKey() |> ignore
+      printfn ""
    
-   member private this.HandleNoErrorsState sender msg = 
-      this.PromptUserForVolumeChange()
-      sender +! { Sender = this; Payload = ContinueProcessing }
+   member private this.HandleNoErrorsState sender (msg : BackupContinuationMessage) = 
+      let remainingFiles = this.CalculateRemainingFiles msg.AllFiles msg.BackedUpFiles
+      if Seq.isEmpty remainingFiles then
+         sender +! { Sender = this; Payload = Finished }
+      else
+         this.PromptUserForVolumeChange()
+         sender +! { Sender = this; Payload = ContinueProcessing }
 
    member private this.HandleSingleErrorState sender msg response = 
       match response with

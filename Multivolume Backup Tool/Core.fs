@@ -28,6 +28,16 @@ namespace MBT.Core
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
 
+///<summary>Utility module</summary>
+module Utilities =
+   let private (|MebiByteOr1|) mebibyte = if mebibyte = 0L then 1L else mebibyte
+
+   ///<summary>Convenience active pattern for turning bytes into kibibytes</summary>
+   let (|MebiBytes|) (bytes : int64) = 
+      match bytes with
+      | 0L -> 0L
+      | bytes ->  bytes / 1048576L |> (|MebiByteOr1|)
+         
 ///<summary>A module with constants defined for the program</summary>
 module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   

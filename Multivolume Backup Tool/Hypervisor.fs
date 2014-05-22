@@ -48,15 +48,15 @@ type private HypervisorMessage =
    | Internal of BackupResponse
    | External of ExternalRequest
    
-type Hypervisor(appConfig : ApplicationConfiguration) =
+type Hypervisor(appConfig : ApplicationConfiguration) as this =
    let (|IsShutdownState|) state =
       match state with
       | ShutdownState -> true
       | _ -> false
 
    (* Private Fields *)
-   member private this._backupManager = new BackupManager(this, appConfig)
-   member private this._mailbox = MailboxProcessor.Start this.InternalMessageLoop
+   let _backupManager = new BackupManager(this, appConfig)
+   let _mailbox = MailboxProcessor.Start this.InternalMessageLoop
 
    (* Private Methods *)
    member private this.HandleInitialStateMessage msg state =
@@ -64,7 +64,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) =
       | External(request) -> 
          match request with
          | Start -> 
-            this._backupManager +! { Sender = this; Payload = BackupMessage.Start }
+            (*this._backupManager +! { Sender = this; Payload = BackupMessage.Start }*)
             StartState
          | Shutdown -> ShutdownState
          | _ -> state
@@ -117,14 +117,17 @@ type Hypervisor(appConfig : ApplicationConfiguration) =
       loop InitialState
 
    (* Public Methods *)
-   member public this.Start() = Start |> (this :> IActor).Post
+   member public this.Begin() = Start |> (this :> IActor).Post
    member public this.Wait (callback : (unit -> unit)) = Wait(callback) |> (this :> IActor).Post
    member public this.Shutdown() = Shutdown |> (this :> IActor).Post
 
    interface IActor with
       member this.Post msg = 
          match msg with
-         | :? BackupResponse as response -> Internal(response) |> this._mailbox.Post
-         | :? ExternalRequest as request -> External(request) |> this._mailbox.Post
+         | :? Message as message -> 
+            match message.Payload with
+            | :? BackupResponse as response -> Internal(response) |> _mailbox.Post
+            | _ -> ()
+         | :? ExternalRequest as request -> External(request) |> _mailbox.Post
          | _ -> ()
    end 

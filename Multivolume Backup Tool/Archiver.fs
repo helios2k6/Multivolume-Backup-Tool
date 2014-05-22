@@ -40,42 +40,49 @@ type private FileArchiveResult =
    | UnknownError of Exception
 
 ///<summary>An actor that archives files</summary>
-type Archiver(parent : IActor) =
+type Archiver(parent : IActor) as this =
    inherit ActorBase<ArchiveMessage, UnitPlaceHolder>(parent)
 
-   let (|KeyOnly|) (kvp : KeyValuePair<_, _>) = kvp.Key
-
    (* Private Static Fields *)
-   static member private DiskFullHResult = 0x70
-   static member private ErrorHandleDiskFullHResult = 0x27
+   static let (|KeyOnly|) (kvp : KeyValuePair<_, _>) = kvp.Key
+   static let DiskFullHResult = 0x70
+   static let ErrorHandleDiskFullHResult = 0x27
 
    (* Private Fields *)
-   member private this._archiveResolver = new ArchiveResolver(this)
+   let _archiveResolver = new ArchiveResolver(this)
 
    (* Private Methods *)
    member private this.RerootPath filePath newRoot =
       let pathRoot = Path.GetPathRoot(filePath)
-      let derootedPath = pathRoot.Replace(pathRoot, String.Empty)
+      let derootedPath = filePath.Replace(pathRoot, String.Empty)
       Path.Combine(newRoot, derootedPath)
 
    member private this.CalculateArchiveFilePath archivePath fileToArchive =
-      let archivePath = this.RerootPath archivePath fileToArchive
-      if archivePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
+      let calculatedArchiveFilePath = this.RerootPath fileToArchive archivePath
+      if calculatedArchiveFilePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
          let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive)
          let ext = Path.GetExtension(fileToArchive)
          Path.Combine(archivePath, fileNameWithoutExt, "_archive_file", ext)
       else
-         archivePath
+         calculatedArchiveFilePath
 
    member private this.IsDiskOutOfSpace (ex : IOException) =
       let hr = Marshal.GetHRForException(ex)
-      hr = Archiver.DiskFullHResult || hr = Archiver.ErrorHandleDiskFullHResult
+      hr = DiskFullHResult || hr = ErrorHandleDiskFullHResult
 
    member private this.HandleIOException ex = if this.IsDiskOutOfSpace ex then FailedFileTooBig else FailedCouldNotReadFile
+   
+   member private this.CreateIntermediateDirectoryStructure filePath =
+      if not <| File.Exists(filePath) then
+         let fileName = Path.GetFileName(filePath)
+         let directoryOnly = filePath.Replace(fileName, String.Empty)
+         if not <| Directory.Exists(directoryOnly) then
+            Directory.CreateDirectory(directoryOnly) |> ignore
 
    member private this.TryCopy fileA fileB (fileManifest : Map<String, String>) =
       try
-         File.Copy(fileA, fileB, true)
+         (*this.CreateIntermediateDirectoryStructure fileB
+         File.Copy(fileA, fileB, true)*)
          Success(fileManifest.Add(fileA, fileB))
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -87,7 +94,8 @@ type Archiver(parent : IActor) =
          | :? NotSupportedException as ex -> UnknownError(ex)
 
    member private this.ArchiveFile archiveFilePath filePath (fileManifest : Map<String, String>) = 
-      (this.CalculateArchiveFilePath archiveFilePath filePath |> this.TryCopy filePath) fileManifest
+      let calculatedArchiveFilePath = this.CalculateArchiveFilePath archiveFilePath filePath
+      this.TryCopy filePath calculatedArchiveFilePath fileManifest
 
    member private this.HandleArchiveResolverResponse (response : ArchiveResolverResponse) =
       let foldFunc (state : Map<String, String> * Map<String, FileArchiveResult>) file =
@@ -136,7 +144,7 @@ type Archiver(parent : IActor) =
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg state =
-      this._archiveResolver +! { Sender = this; Payload = { ArchiveResolverMessage.ArchiveFilePath = msg.ArchiveFilePath; ArchiveResolverMessage.Files = msg.Files; ArchiveResolverMessage.Client = sender } }
+      _archiveResolver +! { Sender = this; Payload = { ArchiveResolverMessage.ArchiveFilePath = msg.ArchiveFilePath; ArchiveResolverMessage.Files = msg.Files; ArchiveResolverMessage.Client = sender } }
       Hold
 
    override this.PreStart() = Hold

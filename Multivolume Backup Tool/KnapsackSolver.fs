@@ -28,6 +28,7 @@ open Knapsack
 open Knapsack.Details
 open MBT
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Operations
 open MBT.Messages
 open System
@@ -41,8 +42,8 @@ type FileItemWrapper(item : String) =
    member this.File with get() = item
 
    interface IItem with
-      member this.Value with get() = _fileInfo.Length
-      member this.Weight with get() = _fileInfo.Length
+      member this.Value with get() = _fileInfo.Length  |> (|MebiBytes|)
+      member this.Weight with get() = _fileInfo.Length |> (|MebiBytes|)
    end
 
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
@@ -57,7 +58,7 @@ type KnapsackSolver(parent : IActor) =
       let items = files |> Seq.map (fun item -> new FileItemWrapper(item) :> IItem)
       let rootDirectory = Path.GetPathRoot(archivePath)
       let driveInfo = new DriveInfo(rootDirectory)
-      solver.Solve(items, driveInfo.AvailableFreeSpace)
+      solver.Solve(items, driveInfo.AvailableFreeSpace |> (|MebiBytes|))
       |> Seq.map (fun i -> this.ExtractFileName i)
 
    (* Public Methods *)
