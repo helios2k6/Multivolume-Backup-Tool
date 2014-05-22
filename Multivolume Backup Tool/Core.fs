@@ -25,6 +25,8 @@
 namespace MBT
 namespace MBT.Core
 
+open System
+
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
 

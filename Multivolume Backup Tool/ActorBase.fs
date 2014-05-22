@@ -32,7 +32,7 @@ open MBT.Operations
 [<AbstractClass>]
 type ActorBase<'msg, 'state>(parent : IActor) as this = 
    (* Fields *)
-   let _mailbox = MailboxProcessor.Start (this.InputLoop (this.PreStart()))
+   let _mailbox = lazy this.InitializeMailbox
    
    (* Private Methods *)
    member private this.InputLoop initialState (inbox : MailboxProcessor<obj>) =
@@ -59,6 +59,8 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
 
    member private this.ShutdownActor state = this.PreShutdown state
 
+   member private this.InitializeMailbox() = MailboxProcessor.Start << this.InputLoop <| this.PreStart()
+
    (* Public Methods *)
    ///<summary>Process a messge</summary>
    abstract member Receive : IActor -> 'msg -> 'state -> 'state
@@ -78,5 +80,5 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
    member public this.Shutdown() = (this :> IActor) +! Messages.Die
 
    interface IActor with
-      member this.Post msg = _mailbox.Post msg
+      member this.Post msg = _mailbox.Value().Post msg
    end

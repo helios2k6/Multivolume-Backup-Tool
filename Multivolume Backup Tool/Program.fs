@@ -27,6 +27,9 @@ open MBT
 open CommandLine
 open CommandLine.Text
 open Microsoft.FSharp.Control
+open log4net
+open log4net.Config
+open System.IO
 
 type private WaitAgentState = 
    | Waiting
@@ -58,8 +61,12 @@ let private AgentLoop (inbox : MailboxProcessor<Message>)=
       }
    loop Waiting
 
+let private LogFileConfig = "log4net-config.xml"
+
 [<EntryPoint>]
 let main argv = 
+   if File.Exists(LogFileConfig) then XmlConfigurator.Configure(new FileInfo(LogFileConfig)) |> ignore
+
    let parsedArgs = ArgumentParser.ParseArguments argv
 
    if parsedArgs.State <> null && parsedArgs.State.Errors.Count > 0 then
@@ -73,5 +80,7 @@ let main argv =
       hypervisor.Wait (fun () -> waitAgent.Post Callback)
 
       waitAgent.PostAndReply(fun channel -> Wait(channel))
+
+      hypervisor.Shutdown()
 
    0 // return an integer exit code

@@ -28,6 +28,7 @@ open MBT.Core
 open MBT.Messages
 open MBT.Operations
 open Microsoft.FSharp.Control
+open log4net
 open System
 
 type private Callback = unit -> unit
@@ -49,7 +50,9 @@ type private HypervisorMessage =
    | External of ExternalRequest
    
 type Hypervisor(appConfig : ApplicationConfiguration) as this =
-   let (|IsShutdownState|) state =
+   static let Log = LogManager.GetLogger(typedefof<Hypervisor>)
+
+   static let (|IsShutdownState|) state =
       match state with
       | ShutdownState -> true
       | _ -> false
@@ -64,9 +67,13 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       | External(request) -> 
          match request with
          | Start -> 
-            (*this._backupManager +! { Sender = this; Payload = BackupMessage.Start }*)
+            Log.Info "Kicking off BackupManager"
+            _backupManager +! { Sender = this; Payload = BackupMessage.Start }
+            Log.Info "Moving to Start State"
             StartState
-         | Shutdown -> ShutdownState
+         | Shutdown -> 
+            Log.Info "Moving to Shutdown State"
+            ShutdownState
          | _ -> state
       | _ -> state
 
@@ -74,16 +81,22 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       match msg with
       | External(request) ->
          match request with
-         | Wait(callback) -> WaitingState(callback)
+         | Wait(callback) -> 
+            Log.Info "Moving to Waiting State"
+            WaitingState(callback)
          | _ -> state
-      | Internal(response) -> FinishedState(response)
+      | Internal(response) -> 
+         Log.Info "Moving to Finished State"
+         FinishedState(response)
 
    member private this.HandleWaitingStateMessage msg state = 
       match msg with
       | Internal(response) -> 
          match state with
          | WaitingState(callback) -> 
+            Log.Info "Executing callback"
             callback()
+            Log.Info "Moving to Finished State"
             FinishedState(response)
          | _ -> state
       | _ -> state
@@ -93,16 +106,22 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       | External(request) -> 
          match request with
          | Wait(callback) -> 
+            Log.Info "Executing callback"
             callback()
+            Log.Info "Moving to Shutdown State"
             ShutdownState
-         | Shutdown -> ShutdownState
+         | Shutdown -> 
+            Log.Info "Moving to Shutdown State"
+            ShutdownState
          | _ -> state
       | _ -> state
+
+   member private this.ShutdownBackupManager() = _backupManager +! { Sender = this; Payload = Die }
 
    member private this.InternalMessageLoop (inbox : MailboxProcessor<HypervisorMessage>) = 
       let rec loop state =
          async {
-            if (|IsShutdownState|) state then return ()
+            if (|IsShutdownState|) state then this.ShutdownBackupManager()
             else
                let! msg = inbox.Receive()
 
@@ -111,15 +130,23 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
                | StartState -> return! this.HandleStartStateMessage msg state |> loop 
                | WaitingState(callback) -> return! this.HandleWaitingStateMessage msg state |> loop 
                | FinishedState(result) -> return! this.HandleFinishedStateMessage msg state |> loop
-               | ShutdownState -> return ()
+               | ShutdownState -> this.ShutdownBackupManager()
          }
 
       loop InitialState
 
    (* Public Methods *)
-   member public this.Begin() = Start |> (this :> IActor).Post
-   member public this.Wait (callback : (unit -> unit)) = Wait(callback) |> (this :> IActor).Post
-   member public this.Shutdown() = Shutdown |> (this :> IActor).Post
+   member public this.Begin() = 
+      Log.Info "Starting Hypervisor"
+      Start |> (this :> IActor).Post
+
+   member public this.Wait (callback : (unit -> unit)) = 
+      Log.Info "Setting wait callback on Hypervisor"
+      Wait(callback) |> (this :> IActor).Post
+
+   member public this.Shutdown() = 
+      Log.Info "Shutting down Hypervisor"
+      Shutdown |> (this :> IActor).Post
 
    interface IActor with
       member this.Post msg = 

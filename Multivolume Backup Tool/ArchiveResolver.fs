@@ -28,6 +28,7 @@ open Newtonsoft.Json
 open MBT.Core
 open MBT.Operations
 open MBT.Messages
+open log4net
 open System
 open System.IO
 open System.Collections.Generic
@@ -39,23 +40,30 @@ type private FileDecision =
 type ArchiveResolver(parent : IActor) =
    inherit ActorBase<ArchiveResolverMessage, UnitPlaceHolder>(parent)
 
+   (* Private Static Fields *)
+   static let Log = LogManager.GetLogger(typedefof<ArchiveResolver>)
+
    (* Private Methods *)
    member private this.TryDeserializeManifestFile fileContents =
       try
+         Log.Info "Desterializing file manifest"
          JsonConvert.DeserializeObject<Dictionary<String, String>>(fileContents)
          |> Seq.map (|KeyValue|)
          |> Map.ofSeq
          |> Some
       with
-         | _ -> None
+         | ex -> 
+            Log.Error <| sprintf "Could not deserialize file manifest. Reason: %A" ex
+            None
 
    member private this.TryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
-
       if File.Exists(pathOfManifestFile) then
+         Log.Info <| sprintf "Reading file manifest at"
          File.ReadAllText(pathOfManifestFile)
          |> this.TryDeserializeManifestFile
       else
+         Log.Info "File manifest does not exist"
          None
 
    member private this.IsDiskFileNewerThanArchiveFile diskFile oldArchiveFile =
@@ -68,13 +76,18 @@ type ArchiveResolver(parent : IActor) =
       let item = oldFileManifest.TryFind fileToBackUp
       match item with
       | Some(oldArchivedFile) -> 
-         if this.IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
+         if not <| File.Exists oldArchivedFile || this.IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
+            Log.Info <| sprintf "Adding or replacing file %A" oldArchivedFile
             AddOrReplaceArchiveFile
          else
+            Log.Info <| sprintf "Keeping file %A" oldArchivedFile
             KeepArchiveFile
-      | None -> AddOrReplaceArchiveFile
+      | None -> 
+         Log.Info "No file manifest found. Adding all files"
+         AddOrReplaceArchiveFile
 
    member private this.ProcessExistingArchive oldFileManifest filesToBackup =
+      Log.Info "Processing existing archive"
       let processedFileTuples = Seq.map (fun file -> (file, this.ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
 
       let newFileManifest = 

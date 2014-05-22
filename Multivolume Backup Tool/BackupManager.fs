@@ -28,6 +28,7 @@ open MBT.Core
 open MBT.Messages
 open MBT.Operations
 open Microsoft.FSharp.Collections
+open log4net
 open System
 
 ///<summary>The backup manager's state object</summary>
@@ -37,6 +38,10 @@ type BackupManagerState = { AllFiles : seq<String>; ProcessedFiles : seq<String>
 type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
    inherit ActorBase<BackupMessage, BackupManagerState>(parent)
 
+   (* Private Static Fields *)
+   static let Log = LogManager.GetLogger(typedefof<BackupManager>)
+
+   (* Private Fields *)
    let _fileChooser = new FileChooser(this)
    let _knapsackSolver = new KnapsackSolver(this)
    let _archiver = new Archiver(this)
@@ -47,16 +52,20 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
    member private this.HandleFileChooserResponse response initialState =
       match response with
       | FileChooserResponse.Files(files) -> 
+         Log.Info "Received FileChooser response. Messaging KnapsackSolver"
          _knapsackSolver +! { Sender = this; Payload = Calculate(config.ArchiveFilePath, files) }
+         Log.Info "Adding all files that need to be backed up"
          { initialState with BackupManagerState.AllFiles = Seq.cache files }
    
    member private this.HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
+         Log.Info "Received Knapsack response. Messaging Archiver"
          _archiver +! { Sender = this; Payload = { ArchiveMessage.ArchiveFilePath = config.ArchiveFilePath; ArchiveMessage.Files = files; } }
          initialState
    
    member private this.HandleArchiveResponse (response : ArchiveResponse) initialState =
+      Log.Info "Received Archiver response. Messaging ContinuationManager"
       let backedUpFiles = Seq.append initialState.ProcessedFiles response.BackedUpFiles
       _continuationManager +! { Sender = this; Payload = { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response } }
       { initialState with ProcessedFiles = backedUpFiles }
@@ -64,25 +73,32 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
    member private this.HandleBackupContinuationResponse response initialState =
       match response with
       | Finished -> 
+         Log.Info "Received Finished message"
          parent +! { Sender = this; Payload = BackupResponse.Success }
          initialState
       | Abort -> 
+         Log.Info "Received Abort message"
          parent +! { Sender = this; Payload = BackupResponse.Failure }
          initialState
-      | IgnoreFiles(files) -> { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
+      | IgnoreFiles(files) -> 
+         Log.Info <| sprintf "Received IgnoreFiles message. Ignoring %A" files
+         { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
       | ContinueProcessing -> 
+         Log.Info "Received ContinueProcessing message"
          let filesToBackup = Set.difference (Set.ofSeq initialState.AllFiles) (Set.ofSeq initialState.ProcessedFiles)
          _knapsackSolver +! { Sender = this; Payload = Calculate(config.ArchiveFilePath, filesToBackup) }
          initialState
 
    (* Public Methods *)
    override this.Receive sender msg state = 
+      Log.Info "Received initial message. Kicking off FileChooser"
       _fileChooser +! { Sender = this; Payload = ChooseFiles(config) }
       state
 
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty }
 
    override this.PreShutdown state =
+      Log.Info "Shutting down children"
       _archiver +! { Sender = this; Payload = Die } 
       _continuationManager +! { Sender = this; Payload = Die } 
       _fileChooser +! { Sender = this; Payload = Die } 
