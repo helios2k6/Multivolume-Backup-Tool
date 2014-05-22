@@ -109,12 +109,14 @@ type Archiver(parent : IActor) as this =
          let manifest = fst state
          let resultMap = snd state
          let fileArchiveResult = this.ArchiveFile response.ArchiveFilePath file manifest
+         Log.Info <| sprintf "File archive result for %A was %A" file fileArchiveResult
 
          match fileArchiveResult with
          | Success(freshManifest) -> (freshManifest, resultMap.Add(file, fileArchiveResult))
          | FailedCouldNotReadFile -> (manifest, resultMap.Add(file, FailedCouldNotReadFile))
          | FailedFileTooBig -> (manifest, resultMap.Add(file, FailedFileTooBig))
          | UnknownError(ex) -> (manifest, resultMap.Add(file, UnknownError(ex)))
+
       Log.Info "Received ArchiveResolver response. Beginning archive"
       Seq.fold foldFunc (response.FileManifest, Map.empty) response.Files
    
