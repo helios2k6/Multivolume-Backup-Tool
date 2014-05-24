@@ -84,9 +84,9 @@ type Archiver(parent : IActor) as this =
 
    member private this.TryCopy fileA fileB (fileManifest : Map<String, String>) =
       try
-         (*this.CreateIntermediateDirectoryStructure fileB*)
+         this.CreateIntermediateDirectoryStructure fileB
          Log.Info <| sprintf "Copying file %A -> %A" fileA fileB
-         (*File.Copy(fileA, fileB, true)*)
+         File.Copy(fileA, fileB, true)
          let result = Success(fileManifest.Add(fileA, fileB))
          Log.Info "Successfully copied file"
          result
