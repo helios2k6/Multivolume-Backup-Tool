@@ -65,6 +65,7 @@ type KnapsackSolver(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | Calculate(archivePath, files) -> 
+         PrintToConsole "Solving knapsack problem for current drive"
          sender +! { Sender = this; Payload = KnapsackResponse.Files((this.Solve archivePath files)) }
          Hold
 

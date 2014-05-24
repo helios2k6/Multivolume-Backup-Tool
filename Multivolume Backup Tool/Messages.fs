@@ -36,7 +36,7 @@ type DeathNote = Die
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 
 ///<summary>The response message from the File Chooser</summary>
-type FileChooserResponse = Files of seq<String>
+type FileChooserResponse = Files of seq<String> | Failure
 
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
 type KnapsackMessage = Calculate of String * seq<String>

@@ -56,6 +56,10 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
          _knapsackSolver +! { Sender = this; Payload = Calculate(config.ArchiveFilePath, files) }
          Log.Info "Adding all files that need to be backed up"
          { initialState with BackupManagerState.AllFiles = Seq.cache files }
+      | FileChooserResponse.Failure -> 
+         Log.Info "Unable to choose files due to error"
+         parent +! { Sender = this; Payload = BackupResponse.Failure }
+         initialState
    
    member private this.HandleKnapsackMessage response initialState =
       match response with

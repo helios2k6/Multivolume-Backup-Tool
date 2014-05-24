@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Messages
 open MBT.Operations
 open System
@@ -52,19 +53,29 @@ type FileChooser(parent : IActor) =
       else
          true
 
-   member private this.ChooseFiles (config : ApplicationConfiguration) =
-      query {
-         for folder in config.Folders do
-         for file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories) do
-         where (this.ShouldAcceptFile file config.Blacklist config.Whitelist)
-         select file
-      }
+   member private this.TryChooseFiles (config : ApplicationConfiguration) =
+      try
+         query {
+            for folder in config.Folders do
+            for file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories) do
+            where (this.ShouldAcceptFile file config.Blacklist config.Whitelist)
+            select file
+         }
+         |> Seq.toList
+         |> Some
+      with 
+      | ex -> 
+         PrintToConsole <| sprintf "Unable to open folders %A" config.Folders
+         None
 
    (* Public Methods *)
    override this.Receive sender msg state =
       match msg with
       | ChooseFiles(config) ->
-         sender +! { Sender = this; Payload = FileChooserResponse.Files(this.ChooseFiles config) }
+         let chosenFilesOption = this.TryChooseFiles config 
+         match chosenFilesOption with
+         | Some(folders) -> sender +! { Sender = this; Payload = FileChooserResponse.Files(folders) }
+         | None -> sender +! { Sender = this; Payload = FileChooserResponse.Failure }
          Hold
 
    override this.PreStart() = Hold

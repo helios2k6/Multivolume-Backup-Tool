@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Messages
 open MBT.Operations
 open Microsoft.FSharp.Control

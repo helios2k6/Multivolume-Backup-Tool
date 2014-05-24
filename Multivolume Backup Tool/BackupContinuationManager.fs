@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Messages
 open MBT.Operations
 open System
@@ -50,17 +51,18 @@ type BackupContinuationManager(parent : IActor) =
    member private this.HandleErrorFiles files msg =
       printfn msg
       files |> Seq.iter (fun item -> printfn "\t%A" item)
-      printfn "What would you like to do?"
-      printfn "[S] Skip all files; [R] Retry all files; [A] Abort"
+      PrintToConsole "What would you like to do?"
+      PrintToConsole "[S] Skip all files; [R] Retry all files; [A] Abort"
 
       let rec getResponseFromUser() =
          let response = Console.ReadKey()
+         printfn ""
          match response.Key with
          | ConsoleKey.A -> Abort
          | ConsoleKey.R -> Retry
          | ConsoleKey.S -> Skip
          | _ ->
-            printfn "%A is an invalid choice. Please choose a valid choice" response.Key
+            PrintToConsole <| sprintf "%A is an invalid choice. Please choose a valid choice" response.Key
             getResponseFromUser()
       
       getResponseFromUser()
@@ -80,9 +82,9 @@ type BackupContinuationManager(parent : IActor) =
    member private this.CalculateRemainingFiles allFiles processedFiles = Set.toSeq (Set.difference (Set.ofSeq allFiles) (Set.ofSeq processedFiles))
 
    member private this.PromptUserForVolumeChange() =
-      printf "Prepare the next volume and then hit any key..."
+      PrintToConsole "Prepare the next volume and then hit any key..."
       Console.ReadKey() |> ignore
-      printfn ""
+      PrintNewLineToConsole()
    
    member private this.HandleNoErrorsState sender (msg : BackupContinuationMessage) = 
       let remainingFiles = this.CalculateRemainingFiles msg.AllFiles msg.BackedUpFiles

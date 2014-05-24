@@ -24,6 +24,7 @@
 
 
 open MBT
+open MBT.Core.Utilities
 open CommandLine
 open CommandLine.Text
 open Microsoft.FSharp.Control
@@ -65,6 +66,7 @@ let private LogFileConfig = "log4net-config.xml"
 
 [<EntryPoint>]
 let main argv = 
+   PrintToConsole "Starting Multivolume Backup Tool"
    if File.Exists(LogFileConfig) then XmlConfigurator.Configure(new FileInfo(LogFileConfig)) |> ignore
 
    let parsedArgs = ArgumentParser.ParseArguments argv
@@ -72,6 +74,7 @@ let main argv =
    if parsedArgs.State <> null && parsedArgs.State.Errors.Count > 0 then
       ArgumentParser.PrintHelp parsedArgs
    else
+      PrintToConsole "Beginning backup process"
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
       let hypervisor = new Hypervisor(appConfig)
       
@@ -82,5 +85,6 @@ let main argv =
       waitAgent.PostAndReply(fun channel -> Wait(channel))
 
       hypervisor.Shutdown()
-
+      PrintToConsole "Finished backup process"
+      
    0 // return an integer exit code

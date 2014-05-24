@@ -39,6 +39,12 @@ module Utilities =
       match bytes with
       | 0L -> 0L
       | bytes ->  bytes / 1048576L |> (|MebiByteOr1|)
+
+   ///<summary>Prints the message to the console with the current time</summary>
+   let PrintToConsole msg = printfn "[%A] - %A" DateTime.Now msg
+
+   ///<summary>Prints a newline to the console</summary>
+   let PrintNewLineToConsole() = printfn ""
          
 ///<summary>A module with constants defined for the program</summary>
 module Constants =
