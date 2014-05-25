@@ -51,7 +51,7 @@ type private HypervisorMessage =
    | External of ExternalRequest
    
 type Hypervisor(appConfig : ApplicationConfiguration) as this =
-   static let Log = LogManager.GetLogger(typedefof<Hypervisor>)
+   static let Log = LogManager.GetLogger typedefof<Hypervisor>
 
    static let (|IsShutdownState|) state =
       match state with

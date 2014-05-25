@@ -66,6 +66,12 @@ type BackupContinuationResponse =
    | IgnoreFiles of seq<String>
    | ContinueProcessing
 
+///<summary>The message you can send to the Volume Switcher</summary>
+type VolumeSwitcherMessage = SwitchVolumes of String
+
+///<summary>The response you will get from the Volume Switcher</summary
+type VolumeSwitcherResponse = VolumePath of String
+
 ///<summary>The messages you can send the Backup Manager</summary>
 type BackupMessage = Start
 

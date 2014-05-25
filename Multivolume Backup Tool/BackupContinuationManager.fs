@@ -44,19 +44,20 @@ type private ErrorHandleStrategy =
    | NoError
    | Strategy of Response
 
+///<summary>Manages the continuation from one backup session to the next by handling errors in the last backup</summary>
 type BackupContinuationManager(parent : IActor) =
    inherit ActorBase<BackupContinuationMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
    member private this.HandleErrorFiles files msg =
-      printfn msg
+      PrintToConsole msg
       files |> Seq.iter (fun item -> printfn "\t%A" item)
       PrintToConsole "What would you like to do?"
       PrintToConsole "[S] Skip all files; [R] Retry all files; [A] Abort"
 
       let rec getResponseFromUser() =
          let response = Console.ReadKey()
-         printfn ""
+         PrintNewLineToConsole()
          match response.Key with
          | ConsoleKey.A -> Abort
          | ConsoleKey.R -> Retry
@@ -81,17 +82,11 @@ type BackupContinuationManager(parent : IActor) =
 
    member private this.CalculateRemainingFiles allFiles processedFiles = Set.toSeq (Set.difference (Set.ofSeq allFiles) (Set.ofSeq processedFiles))
 
-   member private this.PromptUserForVolumeChange() =
-      PrintToConsole "Prepare the next volume and then hit any key..."
-      Console.ReadKey() |> ignore
-      PrintNewLineToConsole()
-   
    member private this.HandleNoErrorsState sender (msg : BackupContinuationMessage) = 
       let remainingFiles = this.CalculateRemainingFiles msg.AllFiles msg.BackedUpFiles
       if Seq.isEmpty remainingFiles then
          sender +! { Sender = this; Payload = Finished }
       else
-         this.PromptUserForVolumeChange()
          sender +! { Sender = this; Payload = ContinueProcessing }
 
    member private this.HandleSingleErrorState sender msg response = 
@@ -99,7 +94,6 @@ type BackupContinuationManager(parent : IActor) =
       | Abort -> sender +! { Sender = this; Payload = BackupContinuationResponse.Abort }
       | Skip -> 
          sender +! { Sender = this; Payload = IgnoreFiles(Seq.append msg.ArchiveResponse.UnableToOpenFiles msg.ArchiveResponse.FilesTooBig) }
-         this.PromptUserForVolumeChange()
          sender +! { Sender = this; Payload = ContinueProcessing }
       | Retry -> this.HandleNoErrorsState sender msg
 

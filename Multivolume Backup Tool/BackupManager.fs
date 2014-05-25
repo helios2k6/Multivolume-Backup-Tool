@@ -32,10 +32,10 @@ open log4net
 open System
 
 ///<summary>The backup manager's state object</summary>
-type BackupManagerState = { AllFiles : seq<String>; ProcessedFiles : seq<String>; }
+type BackupManagerState = { AllFiles : seq<String>; ProcessedFiles : seq<String>; Configuration : ApplicationConfiguration }
 
 ///<summary>The main actor in charge of backing up the system</summary>
-type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
+type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as this =
    inherit ActorBase<BackupMessage, BackupManagerState>(parent)
 
    (* Private Static Fields *)
@@ -46,6 +46,7 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
    let _knapsackSolver = new KnapsackSolver(this)
    let _archiver = new Archiver(this)
    let _continuationManager = new BackupContinuationManager(this)
+   let _volumeSwitcher = new VolumeSwitcher(this)
    
    (* Private Methods *)
    ///<summary>This handles the file chooser response. It will forward the messages to the knapsack actor</summary>
@@ -53,7 +54,7 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
       match response with
       | FileChooserResponse.Files(files) -> 
          Log.Info "Received FileChooser response. Messaging KnapsackSolver"
-         _knapsackSolver +! { Sender = this; Payload = Calculate(config.ArchiveFilePath, files) }
+         _knapsackSolver +! { Sender = this; Payload = Calculate(initialState.Configuration.ArchiveFilePath, files) }
          Log.Info "Adding all files that need to be backed up"
          { initialState with BackupManagerState.AllFiles = Seq.cache files }
       | FileChooserResponse.Failure -> 
@@ -65,7 +66,7 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
       match response with
       | KnapsackResponse.Files(files) -> 
          Log.Info "Received Knapsack response. Messaging Archiver"
-         _archiver +! { Sender = this; Payload = { ArchiveMessage.ArchiveFilePath = config.ArchiveFilePath; ArchiveMessage.Files = files; } }
+         _archiver +! { Sender = this; Payload = { ArchiveMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; ArchiveMessage.Files = files; } }
          initialState
    
    member private this.HandleArchiveResponse (response : ArchiveResponse) initialState =
@@ -89,17 +90,24 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
          { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
       | ContinueProcessing -> 
          Log.Info "Received ContinueProcessing message"
-         let filesToBackup = Set.difference (Set.ofSeq initialState.AllFiles) (Set.ofSeq initialState.ProcessedFiles)
-         _knapsackSolver +! { Sender = this; Payload = Calculate(config.ArchiveFilePath, filesToBackup) }
+         _volumeSwitcher +! { Sender = this; Payload = SwitchVolumes(initialState.Configuration.ArchiveFilePath) }
          initialState
+   
+   member private this.HandleVolumeSwitcherResponse response (initialState : BackupManagerState) =
+      match response with 
+      | VolumePath(volumePath) -> 
+         let newConfiguration = { initialState.Configuration with ArchiveFilePath = volumePath }
+         let filesToBackup = Set.difference (Set.ofSeq initialState.AllFiles) (Set.ofSeq initialState.ProcessedFiles)
+         _knapsackSolver +! { Sender = this; Payload = Calculate(initialState.Configuration.ArchiveFilePath, filesToBackup) }
+         { initialState with Configuration = newConfiguration }
 
    (* Public Methods *)
    override this.Receive sender msg state = 
       Log.Info "Received initial message. Kicking off FileChooser"
-      _fileChooser +! { Sender = this; Payload = ChooseFiles(config) }
+      _fileChooser +! { Sender = this; Payload = ChooseFiles(state.Configuration) }
       state
 
-   override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty }
+   override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty; Configuration = initialConfig }
 
    override this.PreShutdown state =
       Log.Info "Shutting down children"
@@ -114,4 +122,5 @@ type BackupManager(parent : IActor, config : ApplicationConfiguration) as this =
       | :? KnapsackResponse as response -> this.HandleKnapsackMessage response initialState
       | :? ArchiveResponse as response -> this.HandleArchiveResponse response initialState
       | :? BackupContinuationResponse as response -> this.HandleBackupContinuationResponse response initialState
+      | :? VolumeSwitcherResponse as response -> this.HandleVolumeSwitcherResponse response initialState
       | _ -> initialState

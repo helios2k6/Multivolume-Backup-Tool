@@ -41,7 +41,7 @@ type ArchiveResolver(parent : IActor) =
    inherit ActorBase<ArchiveResolverMessage, UnitPlaceHolder>(parent)
 
    (* Private Static Fields *)
-   static let Log = LogManager.GetLogger(typedefof<ArchiveResolver>)
+   static let Log = LogManager.GetLogger typedefof<ArchiveResolver>
 
    (* Private Methods *)
    member private this.TryDeserializeManifestFile fileContents =

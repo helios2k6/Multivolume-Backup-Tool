@@ -48,7 +48,7 @@ type Archiver(parent : IActor) as this =
    static let (|KeyOnly|) (kvp : KeyValuePair<_, _>) = kvp.Key
    static let DiskFullHResult = 0x70
    static let ErrorHandleDiskFullHResult = 0x27
-   static let Log = LogManager.GetLogger(typedefof<Archiver>)
+   static let Log = LogManager.GetLogger typedefof<Archiver>
 
    (* Private Fields *)
    let _archiveResolver = new ArchiveResolver(this)
