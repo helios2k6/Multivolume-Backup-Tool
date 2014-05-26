@@ -44,7 +44,9 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
             | :? Messages.DeathNote -> 
                this.ShutdownActor state
                return ()
-            | :? Message as rMsg -> return! this.HandleMessage rMsg state |> loop
+            | :? Message as rMsg -> 
+               let tempResult = this.HandleMessage rMsg state
+               return! this.HandleMessage rMsg state |> loop
             | unkMsg -> return! this.UnknownMessageHandler NoActorSource.Instance unkMsg state |> loop
 
          }
