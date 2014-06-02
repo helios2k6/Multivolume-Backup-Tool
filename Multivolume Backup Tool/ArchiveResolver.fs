@@ -104,10 +104,10 @@ type ArchiveResolver(parent : IActor) =
       (newFileManifest, filesToArchive)
 
    member private this.SendEmptyResponse (sender : IActor) archiveFilePath files client =
-      sender +! { Sender = this; Payload = { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; Client = client } }
+      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; Client = client }
    
    member private this.SendUpdatedManifest (sender : IActor) archiveFilePath manifest files client =
-      sender +! { Sender = this; Payload = { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; Client = client } }
+      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; Client = client }
 
    (* Public Methods *)
    override this.Receive sender msg state =

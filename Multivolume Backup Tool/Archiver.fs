@@ -154,7 +154,7 @@ type Archiver(parent : IActor) as this =
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg state =
-      _archiveResolver +! { Sender = this; Payload = { ArchiveResolverMessage.ArchiveFilePath = msg.ArchiveFilePath; ArchiveResolverMessage.Files = msg.Files; ArchiveResolverMessage.Client = sender } }
+      _archiveResolver +! Message.Compose this { ArchiveResolverMessage.ArchiveFilePath = msg.ArchiveFilePath; ArchiveResolverMessage.Files = msg.Files; ArchiveResolverMessage.Client = sender }
       Hold
 
    override this.PreStart() = Hold
@@ -170,7 +170,7 @@ type Archiver(parent : IActor) as this =
          Log.Info "Finished archiving"
          Log.Info <| sprintf "Successfully archived %A file(s)"  (Map.fold (fun state _ _ -> state + 1) 0 fileManifest)
          this.WriteManifestFile response.ArchiveFilePath fileManifest
-         response.Client +! { Sender = this; Payload = archiveResponse }
+         response.Client +! Message.Compose this archiveResponse
       | _ -> ()
 
       Hold

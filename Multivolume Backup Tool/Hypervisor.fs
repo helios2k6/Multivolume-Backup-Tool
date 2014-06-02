@@ -69,7 +69,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          match request with
          | Start -> 
             Log.Info "Kicking off BackupManager"
-            _backupManager +! { Sender = this; Payload = BackupMessage.Start }
+            _backupManager +! Message.Compose this BackupMessage.Start
             Log.Info "Moving to Start State"
             StartState
          | Shutdown -> 
@@ -117,7 +117,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          | _ -> state
       | _ -> state
 
-   member private this.ShutdownBackupManager() = _backupManager +! { Sender = this; Payload = Die }
+   member private this.ShutdownBackupManager() = _backupManager +! Message.Compose this Die
 
    member private this.InternalMessageLoop (inbox : MailboxProcessor<HypervisorMessage>) = 
       let rec loop state =

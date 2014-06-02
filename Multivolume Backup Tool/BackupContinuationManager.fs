@@ -85,27 +85,27 @@ type BackupContinuationManager(parent : IActor) =
    member private this.HandleNoErrorsState sender (msg : BackupContinuationMessage) = 
       let remainingFiles = this.CalculateRemainingFiles msg.AllFiles msg.BackedUpFiles
       if Seq.isEmpty remainingFiles then
-         sender +! { Sender = this; Payload = Finished }
+         sender +! Message.Compose this Finished
       else
-         sender +! { Sender = this; Payload = ContinueProcessing }
+         sender +! Message.Compose this ContinueProcessing
 
    member private this.HandleSingleErrorState sender msg response = 
       match response with
-      | Abort -> sender +! { Sender = this; Payload = BackupContinuationResponse.Abort }
+      | Abort -> sender +! Message.Compose  this  BackupContinuationResponse.Abort
       | Skip -> 
-         sender +! { Sender = this; Payload = IgnoreFiles(Seq.append msg.ArchiveResponse.UnableToOpenFiles msg.ArchiveResponse.FilesTooBig) }
-         sender +! { Sender = this; Payload = ContinueProcessing }
+         sender +! Message.Compose this (IgnoreFiles(Seq.append msg.ArchiveResponse.UnableToOpenFiles msg.ArchiveResponse.FilesTooBig))
+         sender +! Message.Compose this ContinueProcessing
       | Retry -> this.HandleNoErrorsState sender msg
 
    member private this.HandleDoubleErrorState sender msg unableToOpenResponse filesTooBigResponse = 
       match (unableToOpenResponse, filesTooBigResponse) with
-      | (Abort, _) | (_, Abort) -> sender +! { Sender = this; Payload = BackupContinuationResponse.Abort }
+      | (Abort, _) | (_, Abort) -> sender +! Message.Compose this BackupContinuationResponse.Abort
       | (Skip, Skip) -> this.HandleSingleErrorState sender msg unableToOpenResponse
       | (Skip, Retry) -> 
-         sender +! { Sender = this; Payload = IgnoreFiles(msg.ArchiveResponse.UnableToOpenFiles) }
+         sender +! Message.Compose this (IgnoreFiles(msg.ArchiveResponse.UnableToOpenFiles))
          this.HandleNoErrorsState sender msg
       | (Retry, Skip) -> 
-         sender +! { Sender = this; Payload = IgnoreFiles(msg.ArchiveResponse.FilesTooBig) }
+         sender +! Message.Compose this (IgnoreFiles(msg.ArchiveResponse.FilesTooBig))
          this.HandleNoErrorsState sender msg
       | (Retry, Retry) -> this.HandleNoErrorsState sender msg
 

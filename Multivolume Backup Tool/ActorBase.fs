@@ -32,8 +32,8 @@ open MBT.Operations
 [<AbstractClass>]
 type ActorBase<'msg, 'state>(parent : IActor) as this = 
    (* Fields *)
-   let _mailbox = lazy this.InitializeMailbox
-   
+   let _mailbox = lazy this.InitializeMailbox()
+
    (* Private Methods *)
    member private this.InputLoop initialState (inbox : MailboxProcessor<obj>) =
       let rec loop state =
@@ -41,12 +41,8 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
             let! msg = inbox.Receive()
 
             match msg with
-            | :? Messages.DeathNote -> 
-               this.ShutdownActor state
-               return ()
-            | :? Message as rMsg -> 
-               let tempResult = this.HandleMessage rMsg state
-               return! this.HandleMessage rMsg state |> loop
+            | :? Messages.DeathNote -> this.ShutdownActor state
+            | :? Message as rMsg -> return! this.HandleMessage rMsg state |> loop
             | unkMsg -> return! this.UnknownMessageHandler NoActorSource.Instance unkMsg state |> loop
 
          }
@@ -82,5 +78,5 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
    member public this.Shutdown() = (this :> IActor) +! Messages.Die
 
    interface IActor with
-      member this.Post msg = _mailbox.Value().Post msg
+      member this.Post msg = _mailbox.Value.Post msg
    end

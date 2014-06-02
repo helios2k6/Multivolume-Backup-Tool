@@ -24,5 +24,14 @@
 
 namespace MBT
 
+open System.Threading
+
+type private IdGenerator() =
+   static let mutable _seed = 1L
+
+   static member GetId() = Interlocked.Increment(ref _seed)
+
 ///<summary>Represents a message</summary>
-type Message = { Sender : IActor; Payload : obj }
+type Message = 
+   { ID : int64; Sender : IActor; Payload : obj }
+   static member Compose (sender : IActor) (payload : obj) = { ID = IdGenerator.GetId(); Sender = sender; Payload = payload }

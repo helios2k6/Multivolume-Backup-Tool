@@ -74,8 +74,8 @@ type FileChooser(parent : IActor) =
       | ChooseFiles(config) ->
          let chosenFilesOption = this.TryChooseFiles config 
          match chosenFilesOption with
-         | Some(folders) -> sender +! { Sender = this; Payload = FileChooserResponse.Files(folders) }
-         | None -> sender +! { Sender = this; Payload = FileChooserResponse.Failure }
+         | Some(folders) -> sender +! Message.Compose this (FileChooserResponse.Files(folders))
+         | None -> sender +! Message.Compose this FileChooserResponse.Failure
          Hold
 
    override this.PreStart() = Hold
