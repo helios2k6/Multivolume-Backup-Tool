@@ -85,23 +85,18 @@ type ArchiveResolver(parent : IActor) =
       | None -> 
          Log.Info "No file manifest found. Adding all files"
          AddOrReplaceArchiveFile
-
+   
    member private this.ProcessExistingArchive oldFileManifest filesToBackup =
       Log.Info "Processing existing archive"
       let processedFileTuples = Seq.map (fun file -> (file, this.ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
 
-      let newFileManifest = 
-         processedFileTuples 
-         |> Seq.filter (fun item -> (snd item) = KeepArchiveFile)
-         |> Seq.map (fun tuple -> ((fst tuple), (oldFileManifest.Item (fst tuple))))
-         |> Map.ofSeq
+      let filesToAddOrReplace = processedFileTuples |> Seq.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> Seq.map (fun item -> fst item) |> Set.ofSeq
 
-      let filesToArchive =
-         processedFileTuples
-         |> Seq.filter (fun item -> (snd item) = AddOrReplaceArchiveFile)
-         |> Seq.map (fun tuple -> fst tuple)
+      let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item)
 
-      (newFileManifest, filesToArchive)
+      let newFileManifest = filesToKeep |> Seq.map (fun item -> (item, oldFileManifest.Item item)) |> Map.ofSeq
+
+      (newFileManifest, filesToAddOrReplace :> String seq)
 
    member private this.SendEmptyResponse (sender : IActor) archiveFilePath files client =
       sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; Client = client }
