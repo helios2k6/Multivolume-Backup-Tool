@@ -53,6 +53,8 @@ type KnapsackSolver(parent : IActor) =
    (* Private Methods *)
    member private this.ExtractFileName (item : IItem) = (item :?> FileItemWrapper).File
 
+   member private this.ChooseResolution archivePath = ()
+
    member private this.Solve archivePath (files : seq<String>) =
       let solver = new ZeroOneDPKnapsackSolver()
       let items = files |> Seq.map (fun item -> new FileItemWrapper(item) :> IItem)
