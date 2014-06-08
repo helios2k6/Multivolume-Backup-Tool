@@ -25,10 +25,10 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Messages
 open MBT.Operations
 open Microsoft.FSharp.Collections
-open log4net
 open System
 
 ///<summary>The backup manager's state object</summary>
@@ -37,9 +37,6 @@ type BackupManagerState = { AllFiles : seq<String>; ProcessedFiles : seq<String>
 ///<summary>The main actor in charge of backing up the system</summary>
 type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as this =
    inherit ActorBase<BackupMessage, BackupManagerState>(parent)
-
-   (* Private Static Fields *)
-   static let Log = LogManager.GetLogger(typedefof<BackupManager>)
 
    (* Private Fields *)
    let _fileChooser = new FileChooser(this)
@@ -53,24 +50,24 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    member private this.HandleFileChooserResponse response initialState =
       match response with
       | FileChooserResponse.Files(files) -> 
-         Log.Info "Received FileChooser response. Messaging KnapsackSolver"
+         PrintToConsole "Received FileChooser response. Messaging KnapsackSolver"
          _knapsackSolver +! Message.Compose this (Calculate(initialState.Configuration.ArchiveFilePath, files))
-         Log.Info "Adding all files that need to be backed up"
+         PrintToConsole "Adding all files that need to be backed up"
          { initialState with BackupManagerState.AllFiles = Seq.cache files }
       | FileChooserResponse.Failure -> 
-         Log.Info "Unable to choose files due to error"
+         PrintToConsole "Unable to choose files due to error"
          parent +! Message.Compose this BackupResponse.Failure
          initialState
    
    member private this.HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
-         Log.Info "Received Knapsack response. Messaging Archiver"
+         PrintToConsole "Received Knapsack response. Messaging Archiver"
          _archiver +! Message.Compose this  { ArchiveMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; ArchiveMessage.Files = files; }
          initialState
    
    member private this.HandleArchiveResponse (response : ArchiveResponse) initialState =
-      Log.Info "Received Archiver response. Messaging ContinuationManager"
+      PrintToConsole "Received Archiver response. Messaging ContinuationManager"
       let backedUpFiles = Seq.append initialState.ProcessedFiles response.BackedUpFiles
       _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
       { initialState with ProcessedFiles = backedUpFiles }
@@ -78,18 +75,18 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    member private this.HandleBackupContinuationResponse response initialState =
       match response with
       | Finished -> 
-         Log.Info "Received Finished message"
+         PrintToConsole "Received Finished message"
          parent +! Message.Compose this BackupResponse.Success
          initialState
       | Abort -> 
-         Log.Info "Received Abort message"
+         PrintToConsole "Received Abort message"
          parent +! Message.Compose this BackupResponse.Failure
          initialState
       | IgnoreFiles(files) -> 
-         Log.Info <| sprintf "Received IgnoreFiles message. Ignoring %A" files
+         PrintToConsole <| sprintf "Received IgnoreFiles message. Ignoring %A" files
          { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
       | ContinueProcessing -> 
-         Log.Info "Received ContinueProcessing message"
+         PrintToConsole "Received ContinueProcessing message"
          _volumeSwitcher +! Message.Compose this (SwitchVolumes(initialState.Configuration.ArchiveFilePath))
          initialState
    
@@ -103,14 +100,14 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    (* Public Methods *)
    override this.Receive sender msg state = 
-      Log.Info "Received initial message. Kicking off FileChooser"
+      PrintToConsole "Received initial message. Kicking off FileChooser"
       _fileChooser +! Message.Compose this (ChooseFiles(state.Configuration))
       state
 
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty; Configuration = initialConfig }
 
    override this.PreShutdown state =
-      Log.Info "Shutting down children"
+      PrintToConsole "Shutting down children"
       _archiver +! Message.Compose this Die 
       _continuationManager +! Message.Compose this Die
       _fileChooser +! Message.Compose this Die

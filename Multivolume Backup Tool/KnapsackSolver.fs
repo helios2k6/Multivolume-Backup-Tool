@@ -35,15 +35,15 @@ open System
 open System.IO
 
 ///<summary>An IITem that represents a file</summary>
-type FileItemWrapper(item : String) =
+type FileItemWrapper(item : String, resolution : int64 -> int64) =
    let _fileInfo = new FileInfo(item)
 
    (* Public Methods *)
    member this.File with get() = item
 
    interface IItem with
-      member this.Value with get() = _fileInfo.Length  |> (|MebiBytes|)
-      member this.Weight with get() = _fileInfo.Length |> (|MebiBytes|)
+      member this.Value with get() = _fileInfo.Length  |> resolution
+      member this.Weight with get() = _fileInfo.Length |> resolution
    end
 
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
@@ -51,17 +51,36 @@ type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
-   member private this.ExtractFileName (item : IItem) = (item :?> FileItemWrapper).File
+   let (|FileName|) (item : IItem) = (item :?> FileItemWrapper).File
 
-   member private this.ChooseResolution archivePath = ()
+   member private this.ChooseResolution (driveInfo : DriveInfo) = 
+      let (|Kilo|Mega|Giga|Tera|) space =
+         let spaceAugmented = space + (space / 10L)
+         if spaceAugmented >= tebibyte then Tera
+         else if spaceAugmented >= gibibyte then Giga
+         else if spaceAugmented >= mebibyte then Mega
+         else Kilo
+
+      match driveInfo.AvailableFreeSpace with
+      | Tera -> 
+         PrintToConsole "Using Gibibyte resolution for knapsack"
+         (|GibiBytes|)
+      | Giga -> 
+         PrintToConsole "Using Mebibyte resolution for knapsack"
+         (|MebiBytes|)
+      | _ -> 
+         PrintToConsole "Using Kibibyte resolution for knapsack"
+         (|KibiBytes|)
 
    member private this.Solve archivePath (files : seq<String>) =
-      let solver = new ZeroOneDPKnapsackSolver()
-      let items = files |> Seq.map (fun item -> new FileItemWrapper(item) :> IItem)
       let rootDirectory = Path.GetPathRoot(archivePath)
       let driveInfo = new DriveInfo(rootDirectory)
-      solver.Solve(items, driveInfo.AvailableFreeSpace |> (|MebiBytes|))
-      |> Seq.map (fun i -> this.ExtractFileName i)
+      let resolution = this.ChooseResolution driveInfo
+      let solver = new ZeroOneDPKnapsackSolver()
+      let items = files |> Seq.map (fun item -> new FileItemWrapper(item, resolution) :> IItem)
+
+      solver.Solve(items, driveInfo.AvailableFreeSpace |> resolution)
+      |> Seq.map (|FileName|)
 
    (* Public Methods *)
    override this.Receive sender msg state =

@@ -24,7 +24,6 @@
 
 namespace MBT
 
-open log4net
 open MBT
 open MBT.Core
 open MBT.Core.Utilities
@@ -35,9 +34,6 @@ open System
 ///<summary>Handles any physical volume switching that the user has to do</summary>
 type VolumeSwitcher(parent : IActor) =
    inherit ActorBase<VolumeSwitcherMessage, UnitPlaceHolder>(parent)
-
-   (* Private Static Fields *)
-   static let Log = LogManager.GetLogger typedefof<VolumeSwitcher>
 
    (* Private Methods *)
    member this.PromptUserToSwitchVolumes currentVolumePath =

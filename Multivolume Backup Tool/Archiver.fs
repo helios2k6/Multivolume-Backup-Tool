@@ -26,9 +26,9 @@ namespace MBT
 
 open Newtonsoft.Json
 open MBT.Core
+open MBT.Core.Utilities
 open MBT.Operations
 open MBT.Messages
-open log4net
 open System
 open System.Collections.Generic
 open System.IO
@@ -48,7 +48,6 @@ type Archiver(parent : IActor) as this =
    static let (|KeyOnly|) (kvp : KeyValuePair<_, _>) = kvp.Key
    static let DiskFullHResult = 0x70
    static let ErrorHandleDiskFullHResult = 0x27
-   static let Log = LogManager.GetLogger typedefof<Archiver>
 
    (* Private Fields *)
    let _archiveResolver = new ArchiveResolver(this)
@@ -79,16 +78,16 @@ type Archiver(parent : IActor) as this =
          let fileName = Path.GetFileName(filePath)
          let directoryOnly = filePath.Replace(fileName, String.Empty)
          if not <| Directory.Exists(directoryOnly) then
-            Log.Info <| sprintf "Creating directory tree: %A" directoryOnly
+            PrintToConsole <| sprintf "Creating directory tree: %A" directoryOnly
             Directory.CreateDirectory(directoryOnly) |> ignore
 
    member private this.TryCopy fileA fileB (fileManifest : Map<String, String>) =
       try
          this.CreateIntermediateDirectoryStructure fileB
-         Log.Info <| sprintf "Copying file %A -> %A" fileA fileB
+         PrintToConsole <| sprintf "Copying file %A -> %A" fileA fileB
          File.Copy(fileA, fileB, true)
          let result = Success(fileManifest.Add(fileA, fileB))
-         Log.Info "Successfully copied file"
+         PrintToConsole "Successfully copied file"
          result
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -105,11 +104,11 @@ type Archiver(parent : IActor) as this =
 
    member private this.HandleArchiveResolverResponse (response : ArchiveResolverResponse) =
       let foldFunc (state : Map<String, String> * Map<String, FileArchiveResult>) file =
-         Log.Info <| sprintf "Archiving file %A" file
+         PrintToConsole <| sprintf "Archiving file %A" file
          let manifest = fst state
          let resultMap = snd state
          let fileArchiveResult = this.ArchiveFile response.ArchiveFilePath file manifest
-         Log.Info <| sprintf "File archive result for %A was %A" file fileArchiveResult
+         PrintToConsole <| sprintf "File archive result for %A was %A" file fileArchiveResult
 
          match fileArchiveResult with
          | Success(freshManifest) -> (freshManifest, resultMap.Add(file, fileArchiveResult))
@@ -117,13 +116,13 @@ type Archiver(parent : IActor) as this =
          | FailedFileTooBig -> (manifest, resultMap.Add(file, FailedFileTooBig))
          | UnknownError(ex) -> (manifest, resultMap.Add(file, UnknownError(ex)))
 
-      Log.Info "Received ArchiveResolver response. Beginning archive"
+      PrintToConsole "Received ArchiveResolver response. Beginning archive"
       Seq.fold foldFunc (response.FileManifest, Map.empty) response.Files
    
    member private this.WriteManifestFile archivePath fileManifest =
       let serializedContext = JsonConvert.SerializeObject(fileManifest)
       let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
-      Log.Info <| sprintf "Writing manifest file to: %A" manifestFilePath
+      PrintToConsole <| sprintf "Writing manifest file to: %A" manifestFilePath
       File.WriteAllText(manifestFilePath, serializedContext)
    
    member private this.FilterForResult (fileArchiveResultMap : Map<String, FileArchiveResult>) result =
@@ -150,7 +149,7 @@ type Archiver(parent : IActor) as this =
       let backedUpFiles = this.GetBackedUpFiles fileArchiveResultMap
       let unableToOpen = this.GetFilesUnableToOpen fileArchiveResultMap
       let filesTooBig = this.GetFilesTooLarge fileArchiveResultMap
-      Log.Info "Messaging client with results"
+      PrintToConsole "Messaging client with results"
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg state =
@@ -162,13 +161,13 @@ type Archiver(parent : IActor) as this =
    override this.UnknownMessageHandler sender msg initialState =
       match msg with
       | :? ArchiveResolverResponse as response -> 
-         Log.Info "Received ArchiveResolver response"
+         PrintToConsole "Received ArchiveResolver response"
          let archiveResult = this.HandleArchiveResolverResponse response
          let fileManifest = fst archiveResult
          let archiveResultMap = snd archiveResult
          let archiveResponse = this.FormArchiveResponse fileManifest archiveResultMap
-         Log.Info "Finished archiving"
-         Log.Info <| sprintf "Successfully archived %A file(s)"  (Map.fold (fun state _ _ -> state + 1) 0 fileManifest)
+         PrintToConsole "Finished archiving"
+         PrintToConsole <| sprintf "Successfully archived %A file(s)"  (Map.fold (fun state _ _ -> state + 1) 0 fileManifest)
          this.WriteManifestFile response.ArchiveFilePath fileManifest
          response.Client +! Message.Compose this archiveResponse
       | _ -> ()

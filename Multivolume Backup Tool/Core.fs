@@ -32,13 +32,43 @@ type UnitPlaceHolder = Hold
 
 ///<summary>Utility module</summary>
 module Utilities =
-   let private (|MebiByteOr1|) mebibyte = if mebibyte = 0L then 1L else mebibyte
+   let private BytesOr1 bytes = if bytes = 0L then 1L else bytes
 
-   ///<summary>Convenience active pattern for turning bytes into kibibytes</summary>
+   ///<summary>Represents 1 Kibibyte</summary>
+   let kibibyte = 1024L
+
+   ///<summary>Represents 1 Mebibyte</summary>
+   let mebibyte = 1024L * kibibyte
+
+   ///<summary>Represents 1 Gibibyte</summary>
+   let gibibyte = 1024L * mebibyte
+
+   ///<summary>Represents 1 Tebibyte</summary>
+   let tebibyte = 1024L * gibibyte
+
+   ///<summary>Convenience active pattern for turning bytes into kibibytes
+   let (|KibiBytes|) (bytes : int64) =
+      match bytes with
+      | 0L -> 0L
+      | bytes -> bytes / kibibyte |> BytesOr1
+
+   ///<summary>Convenience active pattern for turning bytes into mebibytes</summary>
    let (|MebiBytes|) (bytes : int64) = 
       match bytes with
       | 0L -> 0L
-      | bytes ->  bytes / 1048576L |> (|MebiByteOr1|)
+      | bytes ->  bytes / mebibyte |> BytesOr1
+
+    ///<summary>Convenience active pattern for turning bytes into gibibytes</summary>
+   let (|GibiBytes|) (bytes : int64) =
+      match bytes with
+      | 0L -> 0L
+      | bytes -> bytes / gibibyte |> BytesOr1
+
+    ///<summary>Convenience active pattern for turning bytes into tebibytes</summary>
+   let (|TebiBytes|) (bytes : int64) =
+      match bytes with
+      | 0L -> 0L
+      | bytes -> bytes / tebibyte |> BytesOr1
 
    ///<summary>Prints the message to the console with the current time</summary>
    let PrintToConsole msg = printfn "[%A] - %A" DateTime.Now msg

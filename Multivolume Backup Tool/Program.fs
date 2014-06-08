@@ -28,8 +28,6 @@ open MBT.Core.Utilities
 open CommandLine
 open CommandLine.Text
 open Microsoft.FSharp.Control
-open log4net
-open log4net.Config
 open System.IO
 
 type private WaitAgentState = 
@@ -62,13 +60,9 @@ let private AgentLoop (inbox : MailboxProcessor<Message>)=
       }
    loop Waiting
 
-let private LogFileConfig = "log4net-config.xml"
-
 [<EntryPoint>]
 let main argv = 
    PrintToConsole "Starting Multivolume Backup Tool"
-   if File.Exists(LogFileConfig) then XmlConfigurator.Configure(new FileInfo(LogFileConfig)) |> ignore
-
    let parsedArgs = ArgumentParser.ParseArguments argv
 
    if parsedArgs.State <> null && parsedArgs.State.Errors.Count > 0 then
