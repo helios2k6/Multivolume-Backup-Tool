@@ -51,7 +51,7 @@ type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
    (* Private Fields *)
-   static let WiggleRoom = 10L * mebibyte
+   static let WiggleRoom = 50L * mebibyte
 
    (* Private Methods *)
    let (|FileName|) (item : IItem) = (item :?> FileItemWrapper).File
