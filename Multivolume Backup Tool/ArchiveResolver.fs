@@ -43,7 +43,7 @@ type ArchiveResolver(parent : IActor) =
    (* Private Methods *)
    member private this.TryDeserializeManifestFile fileContents =
       try
-         PrintToConsole "Desterializing file manifest"
+         PrintToConsole "Deserializing file manifest"
          JsonConvert.DeserializeObject<Dictionary<String, String>>(fileContents)
          |> Seq.map (|KeyValue|)
          |> Map.ofSeq
