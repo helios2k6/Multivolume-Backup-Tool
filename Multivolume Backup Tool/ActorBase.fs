@@ -35,7 +35,7 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
    let _mailbox = lazy this.InitializeMailbox()
 
    (* Private Methods *)
-   member private this.InputLoop initialState (inbox : MailboxProcessor<obj>) =
+   let InputLoop initialState (inbox : MailboxProcessor<obj>) =
       let rec loop state =
          async {
             let! msg = inbox.Receive()
@@ -57,7 +57,7 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
 
    member private this.ShutdownActor state = this.PreShutdown state
 
-   member private this.InitializeMailbox() = MailboxProcessor.Start << this.InputLoop <| this.PreStart()
+   member private this.InitializeMailbox() = MailboxProcessor.Start << InputLoop <| this.PreStart()
 
    (* Public Methods *)
    ///<summary>Process a messge</summary>

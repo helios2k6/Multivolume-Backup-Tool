@@ -52,42 +52,60 @@ type KnapsackSolver(parent : IActor) =
 
    (* Private Methods *)
    let (|FileName|) (item : IItem) = (item :?> FileItemWrapper).File
+   let (|AsIItem|) item = item :> IItem
+   let (|FileSize|) (item : IItem) = item.Weight
 
-   member private this.ChooseResolution (driveInfo : DriveInfo) = 
-      let (|Kilo|Mega|Giga|Tera|) space =
-         let spaceAugmented = space + (space / 10L)
-         if spaceAugmented >= tebibyte then Tera
-         else if spaceAugmented >= gibibyte then Giga
-         else if spaceAugmented >= mebibyte then Mega
-         else Kilo
+   let SolveUsingGreedy archivePath (files : seq<IItem>) (availableCapacity : int64) = 
+      let foldAction (state : Set<String> * int64) (item : IItem) =
+         let selectedFiles = fst state
+         let remainingCapacity = snd state
+         let size = item.Weight
+         let fileName = (|FileName|) item
+         if size <= remainingCapacity then
+            (selectedFiles.Add fileName, remainingCapacity - size)
+         else
+            state
 
-      match driveInfo.AvailableFreeSpace with
-      | Tera -> 
-         PrintToConsole "Using Gibibyte resolution for knapsack"
-         (|GibiBytes|)
-      | Giga -> 
-         PrintToConsole "Using Mebibyte resolution for knapsack"
-         (|MebiBytes|)
-      | _ -> 
-         PrintToConsole "Using Kibibyte resolution for knapsack"
-         (|KibiBytes|)
+      Seq.fold foldAction (Set.empty, availableCapacity) files
+      |> fst
+      :> String seq
 
-   member private this.Solve archivePath (files : seq<String>) =
-      let rootDirectory = Path.GetPathRoot(archivePath)
-      let driveInfo = new DriveInfo(rootDirectory)
-      let resolution = this.ChooseResolution driveInfo
+   let SolveUsingDP archivePath (files : seq<IItem>) (availableCapacity : int64) =
       let solver = new ZeroOneDPKnapsackSolver()
-      let items = files |> Seq.map (fun item -> new FileItemWrapper(item, resolution) :> IItem)
 
-      solver.Solve(items, driveInfo.AvailableFreeSpace |> resolution)
+      solver.Solve(files, availableCapacity |> (|MebiBytes|))
       |> Seq.map (|FileName|)
+
+   let Solve archivePath (files : seq<String>) = 
+      let filesAsIItems = 
+         files 
+         |> Seq.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)))
+         |> Seq.map (|AsIItem|)
+         |> Seq.sortBy (fun i -> i.Value)
+         |> List.ofSeq
+         |> List.rev
+
+      let totalAmountToArchive = Seq.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
+      let rootPath = Path.GetPathRoot archivePath
+      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace
+
+      PrintToConsole "Calculating knapsack strategy"
+      PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
+      PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" ((|MebiBytes|) capacity)
+
+      if totalAmountToArchive > (|MebiBytes|) (10L * gibibyte) then
+         PrintToConsole "Total amount of files to archive is GREATER than 10 Gibibytes. Using greedy solution algorithm"
+         SolveUsingGreedy archivePath filesAsIItems capacity
+      else
+         PrintToConsole "Total amount of files to archive is LESS than 10 Gibibytes. Using DP solution"
+         SolveUsingDP archivePath filesAsIItems capacity
 
    (* Public Methods *)
    override this.Receive sender msg state =
       match msg with
       | Calculate(archivePath, files) -> 
-         PrintToConsole "Solving knapsack problem for current drive"
-         sender +! Message.Compose this (KnapsackResponse.Files((this.Solve archivePath files)))
+         PrintToConsole "Solving Knapsack Problem"
+         sender +! Message.Compose this (KnapsackResponse.Files((Solve archivePath files)))
          Hold
 
    override this.PreStart() = Hold

@@ -74,23 +74,16 @@ type ArchiveResolver(parent : IActor) =
       match item with
       | Some(oldArchivedFile) -> 
          if not <| File.Exists oldArchivedFile || this.IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
-            PrintToConsole <| sprintf "Adding or replacing file %A" oldArchivedFile
             AddOrReplaceArchiveFile
          else
-            PrintToConsole <| sprintf "Keeping file %A" oldArchivedFile
             KeepArchiveFile
-      | None -> 
-         PrintToConsole "No file manifest found. Adding all files"
-         AddOrReplaceArchiveFile
+      | None -> AddOrReplaceArchiveFile
    
    member private this.ProcessExistingArchive oldFileManifest filesToBackup =
       PrintToConsole "Processing existing archive"
       let processedFileTuples = Seq.map (fun file -> (file, this.ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
-
       let filesToAddOrReplace = processedFileTuples |> Seq.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> Seq.map (fun item -> fst item) |> Set.ofSeq
-
       let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item)
-
       let newFileManifest = filesToKeep |> Seq.map (fun item -> (item, oldFileManifest.Item item)) |> Map.ofSeq
 
       (newFileManifest, filesToAddOrReplace :> String seq)

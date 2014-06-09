@@ -32,6 +32,7 @@ type UnitPlaceHolder = Hold
 
 ///<summary>Utility module</summary>
 module Utilities =
+   let private LockObject = new Object()
    let private BytesOr1 bytes = if bytes = 0L then 1L else bytes
 
    ///<summary>Represents 1 Kibibyte</summary>
@@ -71,10 +72,10 @@ module Utilities =
       | bytes -> bytes / tebibyte |> BytesOr1
 
    ///<summary>Prints the message to the console with the current time</summary>
-   let PrintToConsole msg = printfn "[%A] - %A" DateTime.Now msg
+   let PrintToConsole msg = lock LockObject (fun() -> printfn "[%A] - %A" DateTime.Now msg)
 
    ///<summary>Prints a newline to the console</summary>
-   let PrintNewLineToConsole() = printfn ""
+   let PrintNewLineToConsole() = lock LockObject (fun() -> printfn "")
          
 ///<summary>A module with constants defined for the program</summary>
 module Constants =

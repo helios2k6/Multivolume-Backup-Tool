@@ -78,17 +78,16 @@ type Archiver(parent : IActor) as this =
          let fileName = Path.GetFileName(filePath)
          let directoryOnly = filePath.Replace(fileName, String.Empty)
          if not <| Directory.Exists(directoryOnly) then
-            PrintToConsole <| sprintf "Creating directory tree: %A" directoryOnly
+            PrintToConsole <| sprintf "Creating directory tree: %s" directoryOnly
             Directory.CreateDirectory(directoryOnly) |> ignore
 
    member private this.TryCopy fileA fileB (fileManifest : Map<String, String>) =
       try
          this.CreateIntermediateDirectoryStructure fileB
-         PrintToConsole <| sprintf "Copying file %A -> %A" fileA fileB
+         PrintToConsole <| sprintf "Copying file %s -> %s" fileA fileB
          File.Copy(fileA, fileB, true)
-         let result = Success(fileManifest.Add(fileA, fileB))
-         PrintToConsole "Successfully copied file"
-         result
+
+         Success(fileManifest.Add(fileA, fileB))
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
          | :? ArgumentException as ex -> UnknownError(ex)
@@ -104,25 +103,32 @@ type Archiver(parent : IActor) as this =
 
    member private this.HandleArchiveResolverResponse (response : ArchiveResolverResponse) =
       let foldFunc (state : Map<String, String> * Map<String, FileArchiveResult>) file =
-         PrintToConsole <| sprintf "Archiving file %A" file
+         PrintToConsole <| sprintf "Archiving file %s" file
          let manifest = fst state
          let resultMap = snd state
          let fileArchiveResult = this.ArchiveFile response.ArchiveFilePath file manifest
-         PrintToConsole <| sprintf "File archive result for %A was %A" file fileArchiveResult
 
          match fileArchiveResult with
-         | Success(freshManifest) -> (freshManifest, resultMap.Add(file, fileArchiveResult))
-         | FailedCouldNotReadFile -> (manifest, resultMap.Add(file, FailedCouldNotReadFile))
-         | FailedFileTooBig -> (manifest, resultMap.Add(file, FailedFileTooBig))
-         | UnknownError(ex) -> (manifest, resultMap.Add(file, UnknownError(ex)))
+         | Success(freshManifest) -> 
+            PrintToConsole <| sprintf "Successfully archived file %s" file
+            (freshManifest, resultMap.Add(file, fileArchiveResult))
+         | FailedCouldNotReadFile -> 
+            PrintToConsole <| sprintf "Could not archive file %s. Failed to read file" file
+            (manifest, resultMap.Add(file, FailedCouldNotReadFile))
+         | FailedFileTooBig -> 
+            PrintToConsole <| sprintf "Could not archive file %s. File too big" file
+            (manifest, resultMap.Add(file, FailedFileTooBig))
+         | UnknownError(ex) -> 
+            PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" file ex
+            (manifest, resultMap.Add(file, UnknownError(ex)))
 
-      PrintToConsole "Received ArchiveResolver response. Beginning archive"
+      PrintToConsole "Beginning archive process"
       Seq.fold foldFunc (response.FileManifest, Map.empty) response.Files
    
    member private this.WriteManifestFile archivePath fileManifest =
       let serializedContext = JsonConvert.SerializeObject(fileManifest)
       let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
-      PrintToConsole <| sprintf "Writing manifest file to: %A" manifestFilePath
+      PrintToConsole <| sprintf "Writing manifest file to: %s" manifestFilePath
       File.WriteAllText(manifestFilePath, serializedContext)
    
    member private this.FilterForResult (fileArchiveResultMap : Map<String, FileArchiveResult>) result =
