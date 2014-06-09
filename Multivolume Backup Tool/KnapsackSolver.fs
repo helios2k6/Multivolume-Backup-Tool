@@ -50,6 +50,9 @@ type FileItemWrapper(item : String, resolution : int64 -> int64) =
 type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
+   (* Private Fields *)
+   static let WiggleRoom = 10L * mebibyte
+
    (* Private Methods *)
    let (|FileName|) (item : IItem) = (item :?> FileItemWrapper).File
    let (|AsIItem|) item = item :> IItem
@@ -87,7 +90,7 @@ type KnapsackSolver(parent : IActor) =
 
       let totalAmountToArchive = Seq.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
       let rootPath = Path.GetPathRoot archivePath
-      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace
+      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom
 
       PrintToConsole "Calculating knapsack strategy"
       PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
