@@ -38,6 +38,12 @@ type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 ///<summary>The response message from the File Chooser</summary>
 type FileChooserResponse = Files of seq<String> | Failure
 
+///<summary>The message you can send to the Archive Resolver</summary>
+type ArchiveResolverMessage = { ArchiveFilePath : String; Files : seq<String> }
+
+///<summary>The response you will get from the Archive Resolver</summary>
+type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : seq<String> } 
+
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
 type KnapsackMessage = Calculate of String * seq<String>
 
@@ -54,7 +60,15 @@ type FileArchiveResult =
    | FailureOutOfSpace
 
 ///<summary>The response message from the Archiver</summary>
-type ArchiveResponse = { BackedUpFiles : seq<String>; UnableToOpenFiles : seq<String>; FilesTooBig : seq<String> }
+type ArchiveResponse = { BackedUpFiles : Map<String, String>; UnableToOpenFiles : seq<String>; FilesTooBig : seq<String> }
+
+///<summary>A message that can be sent to the File Manifest Writer</summary>
+type FileManifestWriterMessage = WriteMessage of String * Map<String, String>
+
+///<summary>The response message from the File Manifest Writer</summary>
+type FileManifestWriterResponse = 
+   | Success
+   | Failure
 
 ///<summary>The message you can send to the Backup Continuation Manager</summary>
 type BackupContinuationMessage = { AllFiles : seq<String>; BackedUpFiles : seq<String>; ArchiveResponse : ArchiveResponse }
@@ -79,9 +93,3 @@ type BackupMessage = Start
 type BackupResponse =
    | Success
    | Failure
-
-///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : seq<String>; Client : IActor }
-
-///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : seq<String>; Client : IActor } 

@@ -88,11 +88,11 @@ type ArchiveResolver(parent : IActor) =
 
       (newFileManifest, filesToAddOrReplace :> String seq)
 
-   member private this.SendEmptyResponse (sender : IActor) archiveFilePath files client =
-      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; Client = client }
+   member private this.SendEmptyResponse (sender : IActor) archiveFilePath files =
+      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; }
    
-   member private this.SendUpdatedManifest (sender : IActor) archiveFilePath manifest files client =
-      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; Client = client }
+   member private this.SendUpdatedManifest (sender : IActor) archiveFilePath manifest files =
+      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; }
 
    (* Public Methods *)
    override this.Receive sender msg state =
@@ -100,8 +100,8 @@ type ArchiveResolver(parent : IActor) =
       match existingManifestFile with
       | Some(manifestFile) -> 
          let newFileManifestAndProcessedFiles = this.ProcessExistingArchive manifestFile msg.Files
-         this.SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles) msg.Client
-      | None -> this.SendEmptyResponse sender msg.ArchiveFilePath msg.Files msg.Client
+         this.SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)
+      | None -> this.SendEmptyResponse sender msg.ArchiveFilePath msg.Files
 
       Hold
 

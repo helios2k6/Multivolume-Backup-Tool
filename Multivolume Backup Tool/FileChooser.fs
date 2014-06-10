@@ -72,6 +72,7 @@ type FileChooser(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | ChooseFiles(config) ->
+         PrintToConsole "Choosing files to backup"
          let chosenFilesOption = this.TryChooseFiles config 
          match chosenFilesOption with
          | Some(folders) -> sender +! Message.Compose this (FileChooserResponse.Files(folders))

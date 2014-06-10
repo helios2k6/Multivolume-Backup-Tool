@@ -42,37 +42,57 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let _fileChooser = new FileChooser(this)
    let _knapsackSolver = new KnapsackSolver(this)
    let _archiver = new Archiver(this)
+   let _archiveResolver = new ArchiveResolver(this)
+   let _fileManifestWriter = new FileManifestWriter(this)
    let _continuationManager = new BackupContinuationManager(this)
    let _volumeSwitcher = new VolumeSwitcher(this)
    
    (* Private Methods *)
-   ///<summary>This handles the file chooser response. It will forward the messages to the knapsack actor</summary>
-   member private this.HandleFileChooserResponse response initialState =
+   let HandleFileChooserResponse response initialState =
+      PrintToConsole "Received File Chooser response"
       match response with
       | FileChooserResponse.Files(files) -> 
-         PrintToConsole "Received FileChooser response. Messaging KnapsackSolver"
-         _knapsackSolver +! Message.Compose this (Calculate(initialState.Configuration.ArchiveFilePath, files))
-         PrintToConsole "Adding all files that need to be backed up"
-         { initialState with BackupManagerState.AllFiles = Seq.cache files }
-      | FileChooserResponse.Failure -> 
-         PrintToConsole "Unable to choose files due to error"
-         parent +! Message.Compose this BackupResponse.Failure
-         initialState
-   
-   member private this.HandleKnapsackMessage response initialState =
+         _archiveResolver +! Message.Compose this { ArchiveResolverMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; Files = files; }
+      | FileChooserResponse.Failure -> parent +! Message.Compose this BackupResponse.Failure
+
+      initialState
+
+   let HandleArchiveResolverResponse (response : ArchiveResolverResponse) initialState =
+      PrintToConsole "Received Archive Resolver response"
+      let processedFiles = response.FileManifest |> Seq.map (fun tuple -> tuple.Key) |> Set.ofSeq
+      let allFilesAsSet = Set.ofSeq initialState.AllFiles
+      let filesToProcess = allFilesAsSet - processedFiles
+      
+      _knapsackSolver +! Message.Compose this (KnapsackMessage.Calculate(initialState.Configuration.ArchiveFilePath, filesToProcess))
+      { initialState with ProcessedFiles = processedFiles }
+
+   let HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
-         PrintToConsole "Received Knapsack response. Messaging Archiver"
+         PrintToConsole "Received Knapsack response"
          _archiver +! Message.Compose this  { ArchiveMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; ArchiveMessage.Files = files; }
          initialState
    
-   member private this.HandleArchiveResponse (response : ArchiveResponse) initialState =
-      PrintToConsole "Received Archiver response. Messaging ContinuationManager"
-      let backedUpFiles = Seq.append initialState.ProcessedFiles response.BackedUpFiles
+   let HandleArchiveResponse (response : ArchiveResponse) initialState =
+      PrintToConsole "Received Archiver response"
+      let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> tuple.Key))
+      _fileManifestWriter +! Message.Compose this (WriteMessage(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles))
       _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
       { initialState with ProcessedFiles = backedUpFiles }
+      
+   let HandleFileManifestWriterResponse response initialState =
+      PrintToConsole "Received File Manifest Writer response"
+      match response with 
+      | FileManifestWriterResponse.Success ->
+         PrintToConsole "Successfully wrote the file manifest to the archive"
+         
+      | FileManifestWriterResponse.Failure ->
+         PrintToConsole "Failed to write the file manifest to the archive. Aborting"
+         parent +! Message.Compose this BackupResponse.Failure
 
-   member private this.HandleBackupContinuationResponse response initialState =
+      initialState
+
+   let HandleBackupContinuationResponse response initialState =
       match response with
       | Finished -> 
          PrintToConsole "Received Finished message"
@@ -90,7 +110,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          _volumeSwitcher +! Message.Compose this (SwitchVolumes(initialState.Configuration.ArchiveFilePath))
          initialState
    
-   member private this.HandleVolumeSwitcherResponse response (initialState : BackupManagerState) =
+   let HandleVolumeSwitcherResponse response (initialState : BackupManagerState) =
       match response with 
       | VolumePath(volumePath) -> 
          let newConfiguration = { initialState.Configuration with ArchiveFilePath = volumePath }
@@ -115,9 +135,10 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    override this.UnknownMessageHandler sender msg initialState =
       match msg with
-      | :? FileChooserResponse as response -> this.HandleFileChooserResponse response initialState
-      | :? KnapsackResponse as response -> this.HandleKnapsackMessage response initialState
-      | :? ArchiveResponse as response -> this.HandleArchiveResponse response initialState
-      | :? BackupContinuationResponse as response -> this.HandleBackupContinuationResponse response initialState
-      | :? VolumeSwitcherResponse as response -> this.HandleVolumeSwitcherResponse response initialState
+      | :? FileChooserResponse as response -> HandleFileChooserResponse response initialState
+      | :? KnapsackResponse as response -> HandleKnapsackMessage response initialState
+      | :? ArchiveResponse as response -> HandleArchiveResponse response initialState
+      | :? ArchiveResolverResponse as response -> HandleArchiveResolverResponse response initialState
+      | :? BackupContinuationResponse as response -> HandleBackupContinuationResponse response initialState
+      | :? VolumeSwitcherResponse as response -> HandleVolumeSwitcherResponse response initialState
       | _ -> initialState
