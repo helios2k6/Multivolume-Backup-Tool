@@ -60,7 +60,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
    let _mailbox = MailboxProcessor.Start this.InternalMessageLoop
 
    (* Private Methods *)
-   member private this.HandleInitialStateMessage msg state =
+   let HandleInitialStateMessage msg state =
       match msg with
       | External(request) -> 
          match request with
@@ -75,7 +75,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          | _ -> state
       | _ -> state
 
-   member private this.HandleStartStateMessage msg state = 
+   let HandleStartStateMessage msg state = 
       match msg with
       | External(request) ->
          match request with
@@ -87,7 +87,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          PrintToConsole "Moving to Finished State"
          FinishedState(response)
 
-   member private this.HandleWaitingStateMessage msg state = 
+   let HandleWaitingStateMessage msg state = 
       match msg with
       | Internal(response) -> 
          match state with
@@ -99,7 +99,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          | _ -> state
       | _ -> state
 
-   member private this.HandleFinishedStateMessage msg state = 
+   let HandleFinishedStateMessage msg state = 
       match msg with
       | External(request) -> 
          match request with
@@ -124,10 +124,10 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
                let! msg = inbox.Receive()
 
                match state with
-               | InitialState -> return! this.HandleInitialStateMessage msg state |> loop 
-               | StartState -> return! this.HandleStartStateMessage msg state |> loop 
-               | WaitingState(callback) -> return! this.HandleWaitingStateMessage msg state |> loop 
-               | FinishedState(result) -> return! this.HandleFinishedStateMessage msg state |> loop
+               | InitialState -> return! HandleInitialStateMessage msg state |> loop 
+               | StartState -> return! HandleStartStateMessage msg state |> loop 
+               | WaitingState(callback) -> return! HandleWaitingStateMessage msg state |> loop 
+               | FinishedState(result) -> return! HandleFinishedStateMessage msg state |> loop
                | ShutdownState -> this.ShutdownBackupManager()
          }
 

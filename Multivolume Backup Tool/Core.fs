@@ -86,4 +86,19 @@ module Seq =
    let internal ToSeq item = seq { yield item }
 
    ///<summary>Append one item to the end of a sequence</summary>
-   let internal AppendItem seq item = Seq.append seq (ToSeq item)
+   let internal AppendItem seq item = ToSeq item |> Seq.append seq
+
+module Tuple =
+   ///<summary>Takes the first item of a 3-tuple</summary>
+   let fstOfThree tuple = 
+      match tuple with 
+      (a, _, _) -> a
+
+   let sndOfThree tuple =
+      match tuple with
+      (_, b, _) -> b
+
+   ///<summary>Takes the third item of a 2-tuple</summary>
+   let thrdOfThree tuple =
+      match tuple with
+      (_, _, c) -> c

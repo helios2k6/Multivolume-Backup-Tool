@@ -26,6 +26,7 @@ namespace MBT
 
 open MBT.Core
 open MBT.Core.Utilities
+open MBT.Core.Tuple
 open MBT.Operations
 open MBT.Messages
 open System
@@ -49,12 +50,15 @@ type Archiver(parent : IActor) =
    static let ErrorHandleDiskFullHResult = 0x27
 
    (* Private Methods *)
-   let PrintResult file result =
+   let PrintResult result =
       match result with
-      | Success -> PrintToConsole <| sprintf "Successfully archived file %s" file
-      | FailedCouldNotReadFile -> PrintToConsole <| sprintf "Could not archive file %s. Failed to read file" file
-      | FailedFileTooBig -> PrintToConsole <| sprintf "Could not archive file %s. File too big" file
-      | UnknownError(ex) -> PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" file ex
+      (originalFile, backedUpFile, fileArchiveResult) -> 
+         match fileArchiveResult with
+         | Success -> PrintToConsole <| sprintf "Successfully archived file %s to %s" originalFile backedUpFile
+         | FailedCouldNotReadFile -> PrintToConsole <| sprintf "Could not archive file %s. Failed to read file" originalFile
+         | FailedFileTooBig -> PrintToConsole <| sprintf "Could not archive file %s. File too big" originalFile
+         | UnknownError(ex) -> PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" originalFile ex
+
 
    let RerootPath filePath newRoot =
       let pathRoot = Path.GetPathRoot(filePath)
@@ -87,9 +91,7 @@ type Archiver(parent : IActor) =
    let TryCopy fileA fileB =
       try
          CreateIntermediateDirectoryStructure fileB
-         PrintToConsole <| sprintf "Copying file %s -> %s" fileA fileB
          File.Copy(fileA, fileB, true)
-
          Success
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -100,39 +102,43 @@ type Archiver(parent : IActor) =
          | :? IOException as ex -> HandleIOException ex
          | :? NotSupportedException as ex -> UnknownError(ex)
 
-   let ArchiveFile archiveFilePath filePath = CalculateArchiveFilePath archiveFilePath filePath |> TryCopy filePath
+   let ArchiveFile archiveFilePath filePath = 
+      let copiedFilePath = CalculateArchiveFilePath archiveFilePath filePath
+      let result = TryCopy filePath copiedFilePath
+
+      (filePath, copiedFilePath, result)
 
    let BackupFiles archiveFilePath files =
-      let foldFunc (state : Map<String, FileArchiveResult>) file =
+      let foldFunc (state : (String * String * FileArchiveResult) seq) file =
          let result = ArchiveFile archiveFilePath file
-         PrintResult file result
-         state.Add(file, result)
+         PrintResult result
+         Seq.AppendItem state result
 
       PrintToConsole "Beginning archive process"
-      Seq.fold foldFunc Map.empty files
+      Seq.fold foldFunc Seq.empty files
    
-   let FilterForResult (fileArchiveResultMap : Map<String, FileArchiveResult>) result =
-      fileArchiveResultMap
-      |> Seq.filter (fun tuple -> tuple.Value = result)
-      |> Seq.map (|KeyOnly|)
+   let FilterForResult (archiveResultSequence : (String * String * FileArchiveResult) seq) result =
+      let matchResult item = (thrdOfThree item) = result
 
-   let GetFilesTooLarge (fileArchiveResultMap : Map<String, FileArchiveResult>) = FilterForResult fileArchiveResultMap FailedFileTooBig
+      archiveResultSequence
+      |> Seq.filter matchResult
+      |> Seq.map fstOfThree
 
-   let GetFilesUnableToOpen (fileArchiveResultMap : Map<String, FileArchiveResult>) = FilterForResult fileArchiveResultMap FailedCouldNotReadFile
+   let GetFilesTooLarge (archiveResultSequence : (String * String * FileArchiveResult) seq) = FilterForResult archiveResultSequence FailedFileTooBig
 
-   let GetBackedUpFiles (fileArchiveResultMap : Map<String, FileArchiveResult>) =
-      let matchUp (tuple : KeyValuePair<_, _>) = match tuple.Value with
-                                                 | Success -> true
-                                                 | _ -> false
+   let GetFilesUnableToOpen (archiveResultSequence : (String * String * FileArchiveResult) seq) = FilterForResult archiveResultSequence FailedCouldNotReadFile
 
-      fileArchiveResultMap
+   let GetBackedUpFiles (archiveResultSequence : (String * String * FileArchiveResult) seq) =
+      let matchUp tuple = (thrdOfThree tuple) = Success
+
+      archiveResultSequence
       |> Seq.filter matchUp
-      |> Seq.map (|KeyOnly|)
+      |> Seq.map (fun item -> (fstOfThree item, sndOfThree item))
 
-   let FormArchiveResponse fileArchiveResultMap =
-      let backedUpFiles = GetBackedUpFiles fileArchiveResultMap
-      let unableToOpen = GetFilesUnableToOpen fileArchiveResultMap
-      let filesTooBig = GetFilesTooLarge fileArchiveResultMap
+   let FormArchiveResponse (archiveResultSequence : (String * String * FileArchiveResult) seq) =
+      let backedUpFiles = GetBackedUpFiles archiveResultSequence
+      let unableToOpen = GetFilesUnableToOpen archiveResultSequence
+      let filesTooBig = GetFilesTooLarge archiveResultSequence
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg _ =

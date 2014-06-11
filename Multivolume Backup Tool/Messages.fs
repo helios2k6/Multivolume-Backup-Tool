@@ -39,19 +39,19 @@ type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 type FileChooserResponse = Files of seq<String> | Failure
 
 ///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : seq<String> }
+type ArchiveResolverMessage = { ArchiveFilePath : String; Files : String seq }
 
 ///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : seq<String> } 
+type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : String seq } 
 
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
-type KnapsackMessage = Calculate of String * seq<String>
+type KnapsackMessage = Calculate of String * String seq
 
 ///<summary>The result of the knapsack solver</summary>
-type KnapsackResponse = Files of seq<String>
+type KnapsackResponse = Files of String seq
 
 ///<summary>A message that can be sent to an Archiver</summary>
-type ArchiveMessage = { ArchiveFilePath : String; Files : seq<String>; }
+type ArchiveMessage = { ArchiveFilePath : String; Files : String seq; }
 
 ///<summary>The result of attempting to backup a particular file</summary>
 type FileArchiveResult =
@@ -60,24 +60,22 @@ type FileArchiveResult =
    | FailureOutOfSpace
 
 ///<summary>The response message from the Archiver</summary>
-type ArchiveResponse = { BackedUpFiles : Map<String, String>; UnableToOpenFiles : seq<String>; FilesTooBig : seq<String> }
+type ArchiveResponse = { BackedUpFiles : (String * String) seq; UnableToOpenFiles : String seq; FilesTooBig : String seq }
 
 ///<summary>A message that can be sent to the File Manifest Writer</summary>
-type FileManifestWriterMessage = WriteMessage of String * Map<String, String>
+type FileManifestWriterMessage = WriteManifest of String * Map<String, String>
 
 ///<summary>The response message from the File Manifest Writer</summary>
-type FileManifestWriterResponse = 
-   | Success
-   | Failure
+type FileManifestWriterResponse = Success | Failure
 
 ///<summary>The message you can send to the Backup Continuation Manager</summary>
-type BackupContinuationMessage = { AllFiles : seq<String>; BackedUpFiles : seq<String>; ArchiveResponse : ArchiveResponse }
+type BackupContinuationMessage = { AllFiles : String seq; BackedUpFiles : String seq; ArchiveResponse : ArchiveResponse }
 
 ///<summary>The responses from the Backup Continuation Manager</summary>
 type BackupContinuationResponse =
    | Finished
    | Abort
-   | IgnoreFiles of seq<String>
+   | IgnoreFiles of String seq
    | ContinueProcessing
 
 ///<summary>The message you can send to the Volume Switcher</summary>
@@ -90,6 +88,4 @@ type VolumeSwitcherResponse = VolumePath of String
 type BackupMessage = Start
 
 ///<summary>The response message from the Backup Manager</summary>
-type BackupResponse =
-   | Success
-   | Failure
+type BackupResponse = Success | Failure

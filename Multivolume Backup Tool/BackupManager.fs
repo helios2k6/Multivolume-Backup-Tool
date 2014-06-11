@@ -75,8 +75,8 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    
    let HandleArchiveResponse (response : ArchiveResponse) initialState =
       PrintToConsole "Received Archiver response"
-      let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> tuple.Key))
-      _fileManifestWriter +! Message.Compose this (WriteMessage(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles))
+      let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> fst tuple))
+      _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles |> Map.ofSeq))
       _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
       { initialState with ProcessedFiles = backedUpFiles }
       
@@ -127,11 +127,13 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty; Configuration = initialConfig }
 
    override this.PreShutdown state =
-      PrintToConsole "Shutting down children"
+      PrintToConsole "Shutting down Backup Manager"
       _archiver +! Message.Compose this Die 
       _continuationManager +! Message.Compose this Die
       _fileChooser +! Message.Compose this Die
       _knapsackSolver +! Message.Compose this Die
+      _fileManifestWriter +! Message.Compose this Die
+      _archiveResolver +! Message.Compose this Die
 
    override this.UnknownMessageHandler sender msg initialState =
       match msg with

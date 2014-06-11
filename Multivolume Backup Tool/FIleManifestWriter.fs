@@ -42,13 +42,13 @@
          let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
          PrintToConsole <| sprintf "Writing manifest file to: %s" manifestFilePath
          File.WriteAllText(manifestFilePath, serializedContext)
-         FileManifestWriterResponse.Success(fileManifest)
+         FileManifestWriterResponse.Success
       with
          | _ -> FileManifestWriterResponse.Failure
 
    override this.Receive sender msg _ =
       match msg with
-      | WriteMessage(archivePath, fileManifest) -> 
+      | WriteManifest(archivePath, fileManifest) -> 
          let result = TryWriteManifestFile archivePath fileManifest
          sender +! Message.Compose this result
       Hold
