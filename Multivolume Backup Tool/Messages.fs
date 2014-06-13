@@ -29,8 +29,11 @@ open MBT
 open Microsoft.FSharp.Collections
 open System
 
-(* The death message. It is sent to actors on shutdown *)
-type DeathNote = Die
+///<summary>The shutdown message sent to actors</summary>
+type ShutdownMessage = Start
+
+///<summary>The response sent by an actor that was told to shutdown</summary>
+type ShutdownResponse = FinishedShutdown | FailedShutdown
 
 ///<summary>The messages you can send to the File Chooser</summary>
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration

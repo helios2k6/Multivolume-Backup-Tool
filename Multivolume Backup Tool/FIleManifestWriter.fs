@@ -51,6 +51,6 @@
       | WriteManifest(archivePath, fileManifest) -> 
          let result = TryWriteManifestFile archivePath fileManifest
          sender +! Message.Compose this result
-      Hold
+      Some Hold
 
    override this.PreStart() = Hold

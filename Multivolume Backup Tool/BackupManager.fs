@@ -126,7 +126,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    override this.PreStart() = { AllFiles = Seq.empty; ProcessedFiles = Seq.empty; Configuration = initialConfig }
 
-   override this.PreShutdown state =
+   member private this.ShutdownChildren() =
       PrintToConsole "Shutting down Backup Manager"
       _archiver +! Message.Compose this Die 
       _continuationManager +! Message.Compose this Die

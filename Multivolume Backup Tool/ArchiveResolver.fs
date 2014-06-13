@@ -37,11 +37,11 @@ type private FileDecision =
    | KeepArchiveFile
    | AddOrReplaceArchiveFile
 
-type ArchiveResolver(parent : IActor) =
+type ArchiveResolver(parent : IActor) as this =
    inherit ActorBase<ArchiveResolverMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
-   member private this.TryDeserializeManifestFile fileContents =
+   let TryDeserializeManifestFile fileContents =
       try
          PrintToConsole "Deserializing file manifest"
          JsonConvert.DeserializeObject<Dictionary<String, String>>(fileContents)
@@ -53,56 +53,56 @@ type ArchiveResolver(parent : IActor) =
             PrintToConsole <| sprintf "Could not deserialize file manifest. Reason: %A" ex
             None
 
-   member private this.TryReadManifestFile archiveFilePath =
+   let TryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
       if File.Exists(pathOfManifestFile) then
          PrintToConsole <| sprintf "Reading file manifest at"
          File.ReadAllText(pathOfManifestFile)
-         |> this.TryDeserializeManifestFile
+         |> TryDeserializeManifestFile
       else
          PrintToConsole "File manifest does not exist"
          None
 
-   member private this.IsDiskFileNewerThanArchiveFile diskFile oldArchiveFile =
+   let IsDiskFileNewerThanArchiveFile diskFile oldArchiveFile =
       let oldFileInfo = new FileInfo(oldArchiveFile)
       let newFileInfo = new FileInfo(diskFile)
 
       newFileInfo.LastWriteTimeUtc > oldFileInfo.LastWriteTimeUtc
 
-   member private this.ProcessFileFromExistingArchive (oldFileManifest : Map<String, String>) fileToBackUp =
+   let ProcessFileFromExistingArchive (oldFileManifest : Map<String, String>) fileToBackUp =
       let item = oldFileManifest.TryFind fileToBackUp
       match item with
       | Some(oldArchivedFile) -> 
-         if not <| File.Exists oldArchivedFile || this.IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
+         if not <| File.Exists oldArchivedFile || IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
             AddOrReplaceArchiveFile
          else
             KeepArchiveFile
       | None -> AddOrReplaceArchiveFile
    
-   member private this.ProcessExistingArchive oldFileManifest filesToBackup =
+   let ProcessExistingArchive oldFileManifest filesToBackup =
       PrintToConsole "Processing existing archive"
-      let processedFileTuples = Seq.map (fun file -> (file, this.ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
+      let processedFileTuples = Seq.map (fun file -> (file, ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
       let filesToAddOrReplace = processedFileTuples |> Seq.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> Seq.map (fun item -> fst item) |> Set.ofSeq
       let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item)
       let newFileManifest = filesToKeep |> Seq.map (fun item -> (item, oldFileManifest.Item item)) |> Map.ofSeq
 
       (newFileManifest, filesToAddOrReplace :> String seq)
 
-   member private this.SendEmptyResponse (sender : IActor) archiveFilePath files =
+   let SendEmptyResponse (sender : IActor) archiveFilePath files =
       sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; }
    
-   member private this.SendUpdatedManifest (sender : IActor) archiveFilePath manifest files =
+   let SendUpdatedManifest (sender : IActor) archiveFilePath manifest files =
       sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; }
 
    (* Public Methods *)
    override this.Receive sender msg state =
-      let existingManifestFile = this.TryReadManifestFile msg.ArchiveFilePath
+      let existingManifestFile = TryReadManifestFile msg.ArchiveFilePath
       match existingManifestFile with
       | Some(manifestFile) -> 
-         let newFileManifestAndProcessedFiles = this.ProcessExistingArchive manifestFile msg.Files
-         this.SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)
-      | None -> this.SendEmptyResponse sender msg.ArchiveFilePath msg.Files
+         let newFileManifestAndProcessedFiles = ProcessExistingArchive manifestFile msg.Files
+         SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)
+      | None -> SendEmptyResponse sender msg.ArchiveFilePath msg.Files
 
-      Hold
+      Some Hold
 
    override this.PreStart() = Hold

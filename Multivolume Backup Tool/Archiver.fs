@@ -144,6 +144,6 @@ type Archiver(parent : IActor) =
    override this.Receive sender msg _ =
       let response = BackupFiles msg.ArchiveFilePath msg.Files |> FormArchiveResponse
       sender +! Message.Compose this response
-      Hold
+      Some Hold
 
    override this.PreStart() = Hold
