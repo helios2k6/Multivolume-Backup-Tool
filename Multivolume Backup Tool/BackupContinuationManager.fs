@@ -119,6 +119,6 @@ type BackupContinuationManager(parent : IActor) =
       | (NoError, Strategy(response)) | (Strategy(response), NoError) -> this.HandleSingleErrorState sender msg response
       | (Strategy(response1), Strategy(response2)) -> this.HandleDoubleErrorState sender msg response1 response2
 
-      Hold
+      Some Hold
 
    override this.PreStart() = Hold

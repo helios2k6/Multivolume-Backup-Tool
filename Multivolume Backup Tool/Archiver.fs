@@ -112,7 +112,7 @@ type Archiver(parent : IActor) =
       let foldFunc (state : (String * String * FileArchiveResult) seq) file =
          let result = ArchiveFile archiveFilePath file
          PrintResult result
-         Seq.AppendItem state result
+         Seq.AppendItem result state
 
       PrintToConsole "Beginning archive process"
       Seq.fold foldFunc Seq.empty files

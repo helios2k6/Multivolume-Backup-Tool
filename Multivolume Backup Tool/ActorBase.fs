@@ -26,6 +26,7 @@ namespace MBT
 
 open System
 open Microsoft.FSharp.Control
+open MBT.Messages
 open MBT.Operations
 
 ///<summary>The base class for all actors</summary>
@@ -36,20 +37,21 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
 
    (* Private Methods *)
    let InputLoop initialState (inbox : MailboxProcessor<obj>) = 
+      let checkAndFire providerFunc responseFunc =
+         async {
+            let result = providerFunc()
+            match result with
+            | Some(newState) -> return! responseFunc newState
+            | None -> return ()
+         }
+
       let rec loop state =
          async {
             let! message = inbox.Receive()
             match message with
-            | :? Message as msg -> 
-               let result = this.HandleMessage msg state
-               match result with
-               | Some(newState) -> return! loop newState
-               | None -> return ()
-            | unkMsg -> 
-               let result = this.UnknownMessageHandler NoActorSource.Instance unkMsg state
-               match result with
-               | Some(newState) -> return! loop newState
-               | None -> return ()
+            | :? Message as msg -> return! checkAndFire (fun () -> this.HandleMessage msg state) loop
+            | :? ShutdownMessage as msg -> return! checkAndFire (fun () -> this.HandleShutdownMessage msg state) loop
+            | unkMsg -> return! checkAndFire (fun () -> this.UnknownMessageHandler this unkMsg state) loop
          }
 
       loop initialState
@@ -69,6 +71,12 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
    
    ///<summary>The function called prior to starting up this actor</summary>
    abstract member PreStart : unit -> 'state
+
+   ///<summary>The function that is called to process the shutdown message</summary>
+   abstract member HandleShutdownMessage : ShutdownMessage -> 'state -> 'state Option
+   default this.HandleShutdownMessage _ _ = 
+      parent +! Message.Compose this ShutdownResponse.Finished
+      None
 
    ///<summary>Handles an unknown message</summary>
    abstract member UnknownMessageHandler : IActor -> obj -> 'state -> 'state Option

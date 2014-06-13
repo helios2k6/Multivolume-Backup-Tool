@@ -26,6 +26,7 @@ namespace MBT
 namespace MBT.Core
 
 open System
+open System.Collections.Generic
 
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
@@ -86,7 +87,17 @@ module Seq =
    let internal ToSeq item = seq { yield item }
 
    ///<summary>Append one item to the end of a sequence</summary>
-   let internal AppendItem seq item = ToSeq item |> Seq.append seq
+   let internal AppendItem item seq = ToSeq item |> Seq.append seq
+
+   ///<summary>Produces a sequence of elements with the single item excluded</summary>
+   let internal Except<'a> item seq = 
+      let comparator = EqualityComparer<'a>.Default
+      Seq.skipWhile (fun elem -> comparator.Equals(item, elem)) seq
+
+   ///<summary>Applies a predicate to the sequence to see if every item fulfills the predicate. Empty sequences return true!</summary>
+   let internal All predicate seq = 
+      let foldFunc status item = if status && predicate(item) then true else false
+      seq |> Seq.fold foldFunc true
 
 module Tuple =
    ///<summary>Takes the first item of a 3-tuple</summary>

@@ -109,6 +109,6 @@ type KnapsackSolver(parent : IActor) =
       | Calculate(archivePath, files) -> 
          PrintToConsole "Solving Knapsack Problem"
          sender +! Message.Compose this (KnapsackResponse.Files((Solve archivePath files)))
-         Hold
+         Some Hold
 
    override this.PreStart() = Hold

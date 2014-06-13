@@ -30,10 +30,10 @@ open Microsoft.FSharp.Collections
 open System
 
 ///<summary>The shutdown message sent to actors</summary>
-type ShutdownMessage = Start
+type ShutdownMessage = Die
 
-///<summary>The response sent by an actor that was told to shutdown</summary>
-type ShutdownResponse = FinishedShutdown | FailedShutdown
+///<summary>The shutdown response message</summary>
+type ShutdownResponse = Finished
 
 ///<summary>The messages you can send to the File Chooser</summary>
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration

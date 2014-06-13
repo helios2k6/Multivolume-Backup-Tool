@@ -77,6 +77,6 @@ type FileChooser(parent : IActor) =
          match chosenFilesOption with
          | Some(folders) -> sender +! Message.Compose this (FileChooserResponse.Files(folders))
          | None -> sender +! Message.Compose this FileChooserResponse.Failure
-         Hold
+         Some Hold
 
    override this.PreStart() = Hold

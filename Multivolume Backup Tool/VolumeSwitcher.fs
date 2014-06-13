@@ -64,6 +64,6 @@ type VolumeSwitcher(parent : IActor) =
          | SwitchVolumes(currentVolumePath) ->  
             let newVolumePath = this.PromptUserToSwitchVolumes currentVolumePath
             sender +! Message.Compose this (VolumePath(newVolumePath))
-      Hold
+      Some Hold
 
    override this.PreStart() = Hold
