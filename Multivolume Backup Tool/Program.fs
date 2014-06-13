@@ -76,7 +76,7 @@ let main argv =
       hypervisor.Begin()
       hypervisor.Wait (fun () -> waitAgent.Post Callback)
 
-      waitAgent.PostAndReply(fun channel -> Wait(channel))
+      waitAgent.PostAndReply (fun channel -> Wait(channel))
 
       hypervisor.Shutdown()
       PrintToConsole "Finished backup process"

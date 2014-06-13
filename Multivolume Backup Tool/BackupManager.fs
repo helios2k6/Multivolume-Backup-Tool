@@ -69,7 +69,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleArchiveResolverResponse (response : ArchiveResolverResponse) initialState =
       PrintToConsole "Received Archive Resolver response"
       let processedFiles = response.FileManifest |> Seq.map (fun tuple -> tuple.Key) |> Set.ofSeq
-      let allFilesAsSet = Set.ofSeq initialState.AllFiles
+      let allFilesAsSet = Set.ofSeq response.Files
       let filesToProcess = allFilesAsSet - processedFiles
       
       _knapsackSolver +! Message.Compose this (KnapsackMessage.Calculate(initialState.Configuration.ArchiveFilePath, filesToProcess))
@@ -78,23 +78,22 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
-         PrintToConsole "Received Knapsack response"
+         PrintToConsole "Finished calculating which files will fit in the archive"
          _archiver +! Message.Compose this  { ArchiveMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; ArchiveMessage.Files = files; }
          Some initialState
    
    let HandleArchiveResponse (response : ArchiveResponse) initialState =
-      PrintToConsole "Received Archiver response"
+      PrintToConsole "Finished creating archive"
       let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> fst tuple))
       _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles |> Map.ofSeq))
       _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
       Some { initialState with ProcessedFiles = backedUpFiles }
       
    let HandleFileManifestWriterResponse response initialState =
-      PrintToConsole "Received File Manifest Writer response"
       match response with 
-      | FileManifestWriterResponse.Success ->
+      | FileManifestWriterResponse.Success -> 
          PrintToConsole "Successfully wrote the file manifest to the archive"
-         
+         parent +! Message.Compose this BackupResponse.Success
       | FileManifestWriterResponse.Failure ->
          PrintToConsole "Failed to write the file manifest to the archive. Aborting"
          parent +! Message.Compose this BackupResponse.Failure
@@ -104,18 +103,14 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleBackupContinuationResponse response initialState =
       match response with
       | Finished -> 
-         PrintToConsole "Received Finished message"
          parent +! Message.Compose this BackupResponse.Success
          Some initialState
       | Abort -> 
-         PrintToConsole "Received Abort message"
+         PrintToConsole "Aborting backup process"
          parent +! Message.Compose this BackupResponse.Failure
          Some initialState
-      | IgnoreFiles(files) -> 
-         PrintToConsole <| sprintf "Received IgnoreFiles message. Ignoring %A" files
-         Some { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
+      | IgnoreFiles(files) -> Some { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
       | ContinueProcessing -> 
-         PrintToConsole "Received ContinueProcessing message"
          _volumeSwitcher +! Message.Compose this (SwitchVolumes(initialState.Configuration.ArchiveFilePath))
          Some initialState
    
@@ -158,7 +153,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    let HandleShutdownResponse sender state =
       let childQuery = QueryForChild sender state.ChildrenStatus
-      let validStatuses = Seq.skipWhile (fun elem -> Object.ReferenceEquals(elem, childQuery)) state.ChildrenStatus
+      let validStatuses = state.ChildrenStatus |> Seq.ExceptIf (fun element -> Object.Equals(fst element, childQuery))
       let updatedStatusBoard = Seq.AppendItem (childQuery, Shutdown) validStatuses
       
       //Check to see if everyone is shutdown
@@ -196,9 +191,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          | _ -> Some initialState
       | ShuttingDown -> 
          match msg with
-         | :? ShutdownResponse as shutdownResponse -> 
-            match shutdownResponse with
-            | ShutdownResponse.Finished -> Some initialState
+         | :? ShutdownResponse as shutdownResponse -> HandleShutdownResponse sender initialState
          | _ -> Some initialState
       | _ -> None
 

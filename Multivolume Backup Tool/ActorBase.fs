@@ -49,8 +49,10 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
          async {
             let! message = inbox.Receive()
             match message with
-            | :? Message as msg -> return! checkAndFire (fun () -> this.HandleMessage msg state) loop
-            | :? ShutdownMessage as msg -> return! checkAndFire (fun () -> this.HandleShutdownMessage msg state) loop
+            | :? Message as msg -> 
+               match msg.Payload with
+               | :? ShutdownMessage as shutdownMsg -> return! checkAndFire (fun () -> this.HandleShutdownMessage shutdownMsg state) loop
+               | _ -> return! checkAndFire (fun () -> this.HandleMessage msg state) loop
             | unkMsg -> return! checkAndFire (fun () -> this.UnknownMessageHandler this unkMsg state) loop
          }
 

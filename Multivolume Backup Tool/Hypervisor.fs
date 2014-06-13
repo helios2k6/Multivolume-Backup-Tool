@@ -34,25 +34,29 @@ open System
 type private Callback = unit -> unit
 
 type private HypervisorState = 
-   | InitialState 
-   | StartState 
-   | WaitingState of Callback
-   | FinishedState of BackupResponse
-   | ShutdownState
+   | Initialized
+   | Started
+   | Waiting of Callback
+   | ShuttingDown of Callback Option
+   | Shutdown
 
 type private ExternalRequest = 
    | Start
    | Wait of Callback
    | Shutdown
 
+type private InternalRequest =
+   | BackupResponse of BackupResponse
+   | ShutdownResponse of ShutdownResponse
+
 type private HypervisorMessage = 
-   | Internal of BackupResponse
+   | Internal of InternalRequest
    | External of ExternalRequest
    
 type Hypervisor(appConfig : ApplicationConfiguration) as this =
-   static let (|IsShutdownState|) state =
+   static let IsShutdownState (state : HypervisorState) =
       match state with
-      | ShutdownState -> true
+      | HypervisorState.Shutdown -> true
       | _ -> false
 
    (* Private Fields *)
@@ -60,78 +64,87 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
    let _mailbox = MailboxProcessor.Start this.InternalMessageLoop
 
    (* Private Methods *)
-   let HandleInitialStateMessage msg state =
+   let PrintResponseResults response = 
+      match response with
+      | Success -> PrintToConsole "Backup process was a success"
+      | Failure -> PrintToConsole "Backup process was a failure"
+
+   let HandleInitializedStateMessage msg state =
       match msg with
       | External(request) -> 
          match request with
          | Start -> 
-            PrintToConsole "Kicking off BackupManager"
+            PrintToConsole "Starting backup process"
             _backupManager +! Message.Compose this BackupMessage.Start
-            PrintToConsole "Moving to Start State"
-            StartState
+            Started
          | Shutdown -> 
-            PrintToConsole "Moving to Shutdown State"
-            ShutdownState
+            PrintToConsole "Shutting down"
+            ShuttingDown(None)
          | _ -> state
       | _ -> state
 
-   let HandleStartStateMessage msg state = 
+   let HandleStartedStateMessage msg state = 
       match msg with
       | External(request) ->
          match request with
          | Wait(callback) -> 
-            PrintToConsole "Moving to Waiting State"
-            WaitingState(callback)
+            PrintToConsole "Waiting for backup process to finish"
+            Waiting callback
          | _ -> state
       | Internal(response) -> 
-         PrintToConsole "Moving to Finished State"
-         FinishedState(response)
+         match response with
+         | BackupResponse(backupResponse) ->
+            PrintResponseResults backupResponse
+            this.ShutdownBackupManager()
+            ShuttingDown None
+         | _ -> state
 
    let HandleWaitingStateMessage msg state = 
       match msg with
       | Internal(response) -> 
-         match state with
-         | WaitingState(callback) -> 
-            PrintToConsole "Executing callback"
-            callback()
-            PrintToConsole "Moving to Finished State"
-            FinishedState(response)
+         match response with
+         | BackupResponse(backupResponse) ->
+            PrintResponseResults backupResponse
+            match state with
+            | Waiting(callback) -> 
+               this.ShutdownBackupManager()
+               ShuttingDown (Some callback)
+            | _ -> state
          | _ -> state
       | _ -> state
 
-   let HandleFinishedStateMessage msg state = 
+   let HandleShuttingDownStateMessage msg state =
       match msg with
-      | External(request) -> 
-         match request with
-         | Wait(callback) -> 
-            PrintToConsole "Executing callback"
-            callback()
-            PrintToConsole "Moving to Shutdown State"
-            ShutdownState
-         | Shutdown -> 
-            PrintToConsole "Moving to Shutdown State"
-            ShutdownState
+      | Internal(response) ->
+         match response with
+         | ShutdownResponse(_) -> 
+            match state with
+            | ShuttingDown(callbackOpt) ->
+               match callbackOpt with
+               | Some(callback) -> callback()
+               | None -> ()
+               PrintToConsole "Shutdown complete"
+               HypervisorState.Shutdown
+            | _ -> state
          | _ -> state
       | _ -> state
 
    member private this.ShutdownBackupManager() = _backupManager +! Message.Compose this Die
 
    member private this.InternalMessageLoop (inbox : MailboxProcessor<HypervisorMessage>) = 
-      let rec loop state =
+      let rec loop (state : HypervisorState) =
          async {
-            if (|IsShutdownState|) state then this.ShutdownBackupManager()
-            else
-               let! msg = inbox.Receive()
+            let! msg = inbox.Receive()
 
-               match state with
-               | InitialState -> return! HandleInitialStateMessage msg state |> loop 
-               | StartState -> return! HandleStartStateMessage msg state |> loop 
-               | WaitingState(callback) -> return! HandleWaitingStateMessage msg state |> loop 
-               | FinishedState(result) -> return! HandleFinishedStateMessage msg state |> loop
-               | ShutdownState -> this.ShutdownBackupManager()
+            match state with
+            | Initialized -> return! HandleInitializedStateMessage msg state |> loop
+            | Started -> return! HandleStartedStateMessage msg state |> loop
+            | Waiting(callback) -> return! HandleWaitingStateMessage msg state |> loop
+            | ShuttingDown(callbackOpt) -> HandleShuttingDownStateMessage msg state |> ignore
+            | HypervisorState.Shutdown -> ()
          }
 
-      loop InitialState
+      loop Initialized
 
    (* Public Methods *)
    member public this.Begin() = 
@@ -151,7 +164,8 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          match msg with
          | :? Message as message -> 
             match message.Payload with
-            | :? BackupResponse as response -> Internal(response) |> _mailbox.Post
+            | :? BackupResponse as response -> Internal(BackupResponse(response)) |> _mailbox.Post
+            | :? ShutdownResponse as response -> Internal(ShutdownResponse(response)) |> _mailbox.Post
             | _ -> ()
          | :? ExternalRequest as request -> External(request) |> _mailbox.Post
          | _ -> ()
