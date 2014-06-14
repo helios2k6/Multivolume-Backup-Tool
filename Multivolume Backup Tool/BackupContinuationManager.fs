@@ -51,7 +51,7 @@ type BackupContinuationManager(parent : IActor) =
    (* Private Methods *)
    member private this.HandleErrorFiles files msg =
       PrintToConsole msg
-      files |> Seq.iter (fun item -> printfn "\t%A" item)
+      files |> List.iter (fun item -> printfn "\t%A" item)
       PrintToConsole "What would you like to do?"
       PrintToConsole "[S] Skip all files; [R] Retry all files; [A] Abort"
 
@@ -69,22 +69,22 @@ type BackupContinuationManager(parent : IActor) =
       getResponseFromUser()
 
    member private this.HandleUnableToOpenFiles files = 
-      if Seq.isEmpty files then
+      if List.isEmpty files then
          NoError
       else
          Strategy(this.HandleErrorFiles files "The following files could not be opened for copy:")
 
    member private this.HandleFilesTooBig files = 
-      if Seq.isEmpty files then
+      if List.isEmpty files then
          NoError
       else
          Strategy(this.HandleErrorFiles files "The following files were too large and could not be copied:")
 
-   member private this.CalculateRemainingFiles allFiles processedFiles = Set.toSeq (Set.difference (Set.ofSeq allFiles) (Set.ofSeq processedFiles))
+   member private this.CalculateRemainingFiles allFiles processedFiles = (Set.ofSeq allFiles) - (Set.ofSeq processedFiles) |> Set.toList
 
    member private this.HandleNoErrorsState sender (msg : BackupContinuationMessage) = 
       let remainingFiles = this.CalculateRemainingFiles msg.AllFiles msg.BackedUpFiles
-      if Seq.isEmpty remainingFiles then
+      if List.isEmpty remainingFiles then
          sender +! Message.Compose this Finished
       else
          sender +! Message.Compose this ContinueProcessing
@@ -93,7 +93,7 @@ type BackupContinuationManager(parent : IActor) =
       match response with
       | Abort -> sender +! Message.Compose  this  BackupContinuationResponse.Abort
       | Skip -> 
-         sender +! Message.Compose this (IgnoreFiles(Seq.append msg.ArchiveResponse.UnableToOpenFiles msg.ArchiveResponse.FilesTooBig))
+         sender +! Message.Compose this (IgnoreFiles(msg.ArchiveResponse.UnableToOpenFiles @ msg.ArchiveResponse.FilesTooBig))
          sender +! Message.Compose this ContinueProcessing
       | Retry -> this.HandleNoErrorsState sender msg
 

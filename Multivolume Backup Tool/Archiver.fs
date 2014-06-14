@@ -90,8 +90,10 @@ type Archiver(parent : IActor) =
 
    let TryCopy fileA fileB =
       try
+         (*
          CreateIntermediateDirectoryStructure fileB
          File.Copy(fileA, fileB, true)
+         *)
          Success
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -109,33 +111,33 @@ type Archiver(parent : IActor) =
       (filePath, copiedFilePath, result)
 
    let BackupFiles archiveFilePath files =
-      let foldFunc (state : (String * String * FileArchiveResult) seq) file =
+      let foldFunc (state : (String * String * FileArchiveResult) list) file =
          let result = ArchiveFile archiveFilePath file
          PrintResult result
-         Seq.AppendItem result state
+         result :: state
 
       PrintToConsole "Beginning archive process"
-      Seq.fold foldFunc Seq.empty files
+      List.fold foldFunc list.Empty files
    
-   let FilterForResult (archiveResultSequence : (String * String * FileArchiveResult) seq) result =
+   let FilterForResult (archiveResultSequence : (String * String * FileArchiveResult) list) result =
       let matchResult item = (thrdOfThree item) = result
 
       archiveResultSequence
-      |> Seq.filter matchResult
-      |> Seq.map fstOfThree
+      |> List.filter matchResult
+      |> List.map fstOfThree
 
-   let GetFilesTooLarge (archiveResultSequence : (String * String * FileArchiveResult) seq) = FilterForResult archiveResultSequence FailedFileTooBig
+   let GetFilesTooLarge (archiveResultSequence : (String * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedFileTooBig
 
-   let GetFilesUnableToOpen (archiveResultSequence : (String * String * FileArchiveResult) seq) = FilterForResult archiveResultSequence FailedCouldNotReadFile
+   let GetFilesUnableToOpen (archiveResultSequence : (String * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedCouldNotReadFile
 
-   let GetBackedUpFiles (archiveResultSequence : (String * String * FileArchiveResult) seq) =
+   let GetBackedUpFiles (archiveResultSequence : (String * String * FileArchiveResult) list) =
       let matchUp tuple = (thrdOfThree tuple) = Success
 
       archiveResultSequence
-      |> Seq.filter matchUp
-      |> Seq.map (fun item -> (fstOfThree item, sndOfThree item))
+      |> List.filter matchUp
+      |> List.map (fun item -> (fstOfThree item, sndOfThree item))
 
-   let FormArchiveResponse (archiveResultSequence : (String * String * FileArchiveResult) seq) =
+   let FormArchiveResponse (archiveResultSequence : (String * String * FileArchiveResult) list) =
       let backedUpFiles = GetBackedUpFiles archiveResultSequence
       let unableToOpen = GetFilesUnableToOpen archiveResultSequence
       let filesTooBig = GetFilesTooLarge archiveResultSequence

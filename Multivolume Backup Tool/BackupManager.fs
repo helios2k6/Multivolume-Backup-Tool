@@ -36,11 +36,11 @@ type ActorStatus = Started | ShuttingDown | Shutdown
 ///<summary>The backup manager's state object</summary>
 type BackupManagerState = 
    { 
-      AllFiles : seq<String>; 
-      ProcessedFiles : seq<String>; 
+      AllFiles : String list; 
+      ProcessedFiles : String list;
       Configuration : ApplicationConfiguration; 
       Status : ActorStatus; 
-      ChildrenStatus : (IActor * ActorStatus) seq;
+      ChildrenStatus : (IActor * ActorStatus) list;
       FileManifest : Map<String, String> Option
    }
 
@@ -70,10 +70,10 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleArchiveResolverResponse (response : ArchiveResolverResponse) initialState =
       let processedFiles = response.FileManifest |> Seq.map (fun tuple -> tuple.Key) |> Set.ofSeq
       let allFilesAsSet = Set.ofSeq response.Files
-      let filesToProcess = allFilesAsSet - processedFiles
+      let filesToProcess = allFilesAsSet - processedFiles |> Seq.toList
       
       _knapsackSolver +! Message.Compose this (KnapsackMessage.Calculate(initialState.Configuration.ArchiveFilePath, filesToProcess))
-      Some { initialState with ProcessedFiles = processedFiles; FileManifest = Some response.FileManifest }
+      Some { initialState with ProcessedFiles = processedFiles |> Seq.toList; FileManifest = Some response.FileManifest }
 
    let HandleKnapsackMessage response initialState =
       match response with
@@ -88,13 +88,13 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          let foldAction stateMap key value = Map.add key value stateMap
          Map.fold foldAction oldManifest responseManifest
       
-      let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> fst tuple))
+      let backedUpFiles = initialState.ProcessedFiles @ (response.BackedUpFiles |> List.map (fun tuple -> fst tuple))
       
       let notifyAgents refreshedManifest =
          _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, refreshedManifest))
          _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
 
-      let allProcessedFiles = Seq.append initialState.ProcessedFiles backedUpFiles
+      let allProcessedFiles = initialState.ProcessedFiles @ backedUpFiles
 
       match initialState.FileManifest with
       | Some(oldFileManifest) -> 
@@ -124,7 +124,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          PrintToConsole "Aborting backup process"
          parent +! Message.Compose this BackupResponse.Failure
          Some initialState
-      | IgnoreFiles(files) -> Some { initialState with ProcessedFiles = Seq.append initialState.ProcessedFiles files }
+      | IgnoreFiles(files) -> Some { initialState with ProcessedFiles = initialState.ProcessedFiles @ files }
       | ContinueProcessing -> 
          _volumeSwitcher +! Message.Compose this (SwitchVolumes(initialState.Configuration.ArchiveFilePath))
          Some initialState
@@ -133,7 +133,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       match response with 
       | VolumePath(volumePath) -> 
          let newConfiguration = { initialState.Configuration with ArchiveFilePath = volumePath }
-         let filesToBackup = Set.difference (Set.ofSeq initialState.AllFiles) (Set.ofSeq initialState.ProcessedFiles)
+         let filesToBackup = (Set.ofList initialState.AllFiles) - (Set.ofList initialState.ProcessedFiles) |> Seq.toList
          _knapsackSolver +! Message.Compose this (Calculate(initialState.Configuration.ArchiveFilePath, filesToBackup))
          Some { initialState with Configuration = newConfiguration }
 
@@ -146,14 +146,14 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       _archiveResolver +! Message.Compose this Die
    
    let GetInitialChildrenStatusSeq() =
-      seq {
+      [
          yield (_archiver :> IActor, Started)
          yield (_continuationManager :> IActor, Started)
          yield (_fileChooser :> IActor, Started)
          yield (_knapsackSolver :> IActor, Started)
          yield (_fileManifestWriter :> IActor, Started)
          yield (_archiveResolver :> IActor, Started)
-      }
+      ]
 
    let QueryForChild (child : IActor) (statusBoard : (IActor * ActorStatus) seq) =
       query {
@@ -167,8 +167,8 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    let HandleShutdownResponse sender state =
       let childQuery = QueryForChild sender state.ChildrenStatus
-      let validStatuses = state.ChildrenStatus |> Seq.ExceptIf (fun element -> Object.Equals(fst element, childQuery))
-      let updatedStatusBoard = Seq.AppendItem (childQuery, Shutdown) validStatuses
+      let validStatuses = state.ChildrenStatus |> List.filter (fun element -> not <| Object.Equals(fst element, childQuery))
+      let updatedStatusBoard = (childQuery, Shutdown) :: validStatuses
       
       //Check to see if everyone is shutdown
       if AreAllChildrenShutdown updatedStatusBoard then 
@@ -183,8 +183,8 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    override this.PreStart() = 
       { 
-         AllFiles = Seq.empty; 
-         ProcessedFiles = Seq.empty; 
+         AllFiles = List.empty;
+         ProcessedFiles = List.empty; 
          Configuration = initialConfig; 
          Status = Started; 
          ChildrenStatus = GetInitialChildrenStatusSeq();
@@ -211,5 +211,5 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    override this.HandleShutdownMessage _ state =
       ShutdownChildren()
-      let freshStatusBoard = state.ChildrenStatus |> Seq.map (fun item -> (fst item, ShuttingDown))
+      let freshStatusBoard = state.ChildrenStatus |> List.map (fun item -> (fst item, ShuttingDown))
       Some { state with Status = ShuttingDown; ChildrenStatus = freshStatusBoard }

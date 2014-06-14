@@ -58,7 +58,7 @@ type KnapsackSolver(parent : IActor) =
    let (|AsIItem|) item = item :> IItem
    let (|FileSize|) (item : IItem) = item.Weight
 
-   let SolveUsingGreedy archivePath (files : seq<IItem>) (availableCapacity : int64) = 
+   let SolveUsingGreedy archivePath (files : IItem list) (availableCapacity : int64) = 
       let foldAction (state : Set<String> * int64) (item : IItem) =
          let selectedFiles = fst state
          let remainingCapacity = snd state
@@ -69,26 +69,25 @@ type KnapsackSolver(parent : IActor) =
          else
             state
 
-      Seq.fold foldAction (Set.empty, availableCapacity) files
+      List.fold foldAction (Set.empty, availableCapacity) files
       |> fst
-      :> String seq
+      |> Seq.toList
 
-   let SolveUsingDP archivePath (files : seq<IItem>) (availableCapacity : int64) =
+   let SolveUsingDP archivePath (files : IItem list) (availableCapacity : int64) =
       let solver = new ZeroOneDPKnapsackSolver()
 
       solver.Solve(files, availableCapacity |> (|MebiBytes|))
-      |> Seq.map (|FileName|)
+      |> Seq.toList
+      |> List.map (|FileName|)
 
-   let Solve archivePath (files : seq<String>) = 
+   let Solve archivePath (files : String list) = 
       let filesAsIItems = 
          files 
-         |> Seq.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)))
-         |> Seq.map (|AsIItem|)
-         |> Seq.sortBy (fun i -> i.Value)
-         |> List.ofSeq
+         |> List.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)) |> (|AsIItem|))
+         |> List.sortBy (fun i -> i.Value)
          |> List.rev
 
-      let totalAmountToArchive = Seq.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
+      let totalAmountToArchive = List.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
       let rootPath = Path.GetPathRoot archivePath
       let capacity = Math.Max((new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom, 0L)
 

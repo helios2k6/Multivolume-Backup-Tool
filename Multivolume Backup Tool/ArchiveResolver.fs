@@ -78,12 +78,12 @@ type ArchiveResolver(parent : IActor) as this =
    
    let ProcessExistingArchive oldFileManifest filesToBackup =
       PrintToConsole "Processing existing archive"
-      let processedFileTuples = Seq.map (fun file -> (file, ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
-      let filesToAddOrReplace = processedFileTuples |> Seq.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> Seq.map (fun item -> fst item) |> Set.ofSeq
-      let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item)
+      let processedFileTuples = List.map (fun file -> (file, ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
+      let filesToAddOrReplace = processedFileTuples |> List.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> List.map (fun item -> fst item) |> Set.ofList
+      let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item) |> Seq.toList
       let newFileManifest = filesToKeep |> Seq.map (fun item -> (item, oldFileManifest.Item item)) |> Map.ofSeq
 
-      (newFileManifest, filesToAddOrReplace :> String seq)
+      (newFileManifest, filesToAddOrReplace |> Set.toList)
 
    let SendEmptyResponse (sender : IActor) archiveFilePath files =
       sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; }

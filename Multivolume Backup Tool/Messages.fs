@@ -39,22 +39,22 @@ type ShutdownResponse = Finished
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 
 ///<summary>The response message from the File Chooser</summary>
-type FileChooserResponse = Files of seq<String> | Failure
+type FileChooserResponse = Files of String list | Failure
 
 ///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : String seq }
+type ArchiveResolverMessage = { ArchiveFilePath : String; Files : String list }
 
 ///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : String seq } 
+type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : String list } 
 
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
-type KnapsackMessage = Calculate of String * String seq
+type KnapsackMessage = Calculate of String * String list
 
 ///<summary>The result of the knapsack solver</summary>
-type KnapsackResponse = Files of String seq
+type KnapsackResponse = Files of String list
 
 ///<summary>A message that can be sent to an Archiver</summary>
-type ArchiveMessage = { ArchiveFilePath : String; Files : String seq; }
+type ArchiveMessage = { ArchiveFilePath : String; Files : String list; }
 
 ///<summary>The result of attempting to backup a particular file</summary>
 type FileArchiveResult =
@@ -63,7 +63,7 @@ type FileArchiveResult =
    | FailureOutOfSpace
 
 ///<summary>The response message from the Archiver</summary>
-type ArchiveResponse = { BackedUpFiles : (String * String) seq; UnableToOpenFiles : String seq; FilesTooBig : String seq }
+type ArchiveResponse = { BackedUpFiles : (String * String) list; UnableToOpenFiles : String list; FilesTooBig : String list }
 
 ///<summary>A message that can be sent to the File Manifest Writer</summary>
 type FileManifestWriterMessage = WriteManifest of String * Map<String, String>
@@ -72,13 +72,13 @@ type FileManifestWriterMessage = WriteManifest of String * Map<String, String>
 type FileManifestWriterResponse = Success | Failure
 
 ///<summary>The message you can send to the Backup Continuation Manager</summary>
-type BackupContinuationMessage = { AllFiles : String seq; BackedUpFiles : String seq; ArchiveResponse : ArchiveResponse }
+type BackupContinuationMessage = { AllFiles : String list; BackedUpFiles : String list; ArchiveResponse : ArchiveResponse }
 
 ///<summary>The responses from the Backup Continuation Manager</summary>
 type BackupContinuationResponse =
    | Finished
    | Abort
-   | IgnoreFiles of String seq
+   | IgnoreFiles of String list
    | ContinueProcessing
 
 ///<summary>The message you can send to the Volume Switcher</summary>

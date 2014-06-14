@@ -64,6 +64,46 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
    let _mailbox = MailboxProcessor.Start this.InternalMessageLoop
 
    (* Private Methods *)
+   let (|GetInternalResponse|_|) msg =
+      match msg with
+      | Internal(response) -> Some response
+      | _ -> None
+
+   let (|GetExternalRequest|_|) msg =
+      match msg with
+      | External(request) -> Some request
+      | _ -> None
+
+   let (|GetShutdownResponse|_|) msg =
+      match msg with
+      | ShutdownResponse(response) -> Some response
+      | _ -> None
+
+   let (|InternalShutdownResponse|_|) msg =
+      match msg with
+      | GetInternalResponse (GetShutdownResponse response) -> Some response
+      | _ -> None
+
+   let (|ShuttingDownCallback|_|) state =
+      match state with
+      | ShuttingDown(callbackOpt) -> callbackOpt
+      | _ -> None
+   
+   let (|GetBackupResponse|_|) msg =
+      match msg with
+      | BackupResponse(response) -> Some response
+      | _ -> None
+
+   let (|GetWaitingCallback|_|) state =
+      match state with
+      | Waiting(callback) -> Some callback
+      | _ -> None
+
+   let (|GetWaitRequest|_|) req =
+      match req with
+      | Wait(callback) -> Some callback
+      | _ -> None
+
    let PrintResponseResults response = 
       match response with
       | Success -> PrintToConsole "Backup process was a success"
@@ -80,47 +120,33 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
          | _ -> state
       | _ -> state
 
-   let HandleStartedStateMessage msg state = 
+   let HandleStartedStateMessage msg state =
       match msg with
-      | External(request) ->
-         match request with
-         | Wait(callback) -> Waiting callback
-         | _ -> state
-      | Internal(response) -> 
-         match response with
-         | BackupResponse(backupResponse) ->
-            PrintResponseResults backupResponse
-            this.ShutdownBackupManager()
-            ShuttingDown None
-         | _ -> state
+      | GetExternalRequest (GetWaitRequest callback) -> Waiting callback
+      | GetInternalResponse (GetBackupResponse response) -> 
+         PrintResponseResults response
+         this.ShutdownBackupManager()
+         ShuttingDown None
+      | _ -> state
 
-   let HandleWaitingStateMessage msg state = 
+   let HandleWaitingStateMessage msg state =
       match msg with
-      | Internal(response) -> 
-         match response with
-         | BackupResponse(backupResponse) ->
-            PrintResponseResults backupResponse
-            match state with
-            | Waiting(callback) -> 
-               this.ShutdownBackupManager()
-               ShuttingDown (Some callback)
-            | _ -> state
+      | GetInternalResponse (GetBackupResponse response) ->
+         PrintResponseResults response
+         match state with
+         | GetWaitingCallback callback -> 
+            this.ShutdownBackupManager()
+            ShuttingDown (Some callback)
          | _ -> state
       | _ -> state
 
    let HandleShuttingDownStateMessage msg state =
       match msg with
-      | Internal(response) ->
-         match response with
-         | ShutdownResponse(_) -> 
-            match state with
-            | ShuttingDown(callbackOpt) ->
-               match callbackOpt with
-               | Some(callback) -> callback()
-               | None -> ()
-               HypervisorState.Shutdown
-            | _ -> state
-         | _ -> state
+      | InternalShutdownResponse _ ->
+         match state with
+         | ShuttingDownCallback callback -> callback()
+         | _ -> ()
+         HypervisorState.Shutdown
       | _ -> state
 
    member private this.ShutdownBackupManager() = _backupManager +! Message.Compose this Die

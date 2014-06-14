@@ -83,23 +83,6 @@ module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
 
 module Seq =
-   ///<summary>Turns one item into a sequence</summary>
-   let internal ToSeq item = seq { yield item }
-
-   ///<summary>Append one item to the end of a sequence</summary>
-   let internal AppendItem item seq = ToSeq item |> Seq.append seq
-
-   ///<summary>Produces a sequence of elements with the single item excluded</summary>
-   let internal ExceptIf predicate sequence =
-      seq {
-         for element in sequence do
-         if not <| predicate(element) then yield element
-      }
-
-   let internal Except<'a> item sequence = 
-      let comparator = EqualityComparer<'a>.Default
-      sequence |> ExceptIf (fun element -> comparator.Equals(element, item)) 
-
    ///<summary>Applies a predicate to the sequence to see if every item fulfills the predicate. Empty sequences return true!</summary>
    let internal All predicate seq = 
       let foldFunc status item = if status && predicate(item) then true else false
