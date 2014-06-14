@@ -40,7 +40,8 @@ type BackupManagerState =
       ProcessedFiles : seq<String>; 
       Configuration : ApplicationConfiguration; 
       Status : ActorStatus; 
-      ChildrenStatus : (IActor * ActorStatus) seq
+      ChildrenStatus : (IActor * ActorStatus) seq;
+      FileManifest : Map<String, String> Option
    }
 
 ///<summary>The main actor in charge of backing up the system</summary>
@@ -61,9 +62,10 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       match response with
       | FileChooserResponse.Files(files) -> 
          _archiveResolver +! Message.Compose this { ArchiveResolverMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; Files = files; }
-      | FileChooserResponse.Failure -> parent +! Message.Compose this BackupResponse.Failure
-
-      Some initialState
+         Some { initialState with AllFiles = files }
+      | FileChooserResponse.Failure -> 
+         parent +! Message.Compose this BackupResponse.Failure
+         None
 
    let HandleArchiveResolverResponse (response : ArchiveResolverResponse) initialState =
       let processedFiles = response.FileManifest |> Seq.map (fun tuple -> tuple.Key) |> Set.ofSeq
@@ -71,7 +73,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       let filesToProcess = allFilesAsSet - processedFiles
       
       _knapsackSolver +! Message.Compose this (KnapsackMessage.Calculate(initialState.Configuration.ArchiveFilePath, filesToProcess))
-      Some { initialState with ProcessedFiles = processedFiles }
+      Some { initialState with ProcessedFiles = processedFiles; FileManifest = Some response.FileManifest }
 
    let HandleKnapsackMessage response initialState =
       match response with
@@ -80,20 +82,38 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          Some initialState
    
    let HandleArchiveResponse (response : ArchiveResponse) initialState =
+      let responseManifest = response.BackedUpFiles |> Map.ofSeq
+
+      let createNewFileManifest oldManifest responseManifest =
+         let foldAction stateMap key value = Map.add key value stateMap
+         Map.fold foldAction oldManifest responseManifest
+      
       let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> fst tuple))
-      _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles |> Map.ofSeq))
-      _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
-      Some { initialState with ProcessedFiles = backedUpFiles }
+      
+      let notifyAgents refreshedManifest =
+         _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, refreshedManifest))
+         _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
+
+      let allProcessedFiles = Seq.append initialState.ProcessedFiles backedUpFiles
+
+      match initialState.FileManifest with
+      | Some(oldFileManifest) -> 
+         let refreshedManifest = createNewFileManifest oldFileManifest responseManifest
+         notifyAgents refreshedManifest
+         Some { initialState with ProcessedFiles = allProcessedFiles; FileManifest = Some refreshedManifest }
+      | None ->
+         notifyAgents responseManifest
+         Some { initialState with ProcessedFiles = allProcessedFiles; FileManifest = Some responseManifest }
       
    let HandleFileManifestWriterResponse response initialState =
       match response with 
-      | FileManifestWriterResponse.Success -> 
-         parent +! Message.Compose this BackupResponse.Success
+      | FileManifestWriterResponse.Success -> parent +! Message.Compose this BackupResponse.Success
       | FileManifestWriterResponse.Failure ->
          PrintToConsole "Failed to write the file manifest to the archive. Aborting"
          parent +! Message.Compose this BackupResponse.Failure
 
-      Some initialState
+      // Clearing out the old file manifest
+      Some { initialState with BackupManagerState.FileManifest = None }
 
    let HandleBackupContinuationResponse response initialState =
       match response with
@@ -167,7 +187,8 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          ProcessedFiles = Seq.empty; 
          Configuration = initialConfig; 
          Status = Started; 
-         ChildrenStatus = GetInitialChildrenStatusSeq() 
+         ChildrenStatus = GetInitialChildrenStatusSeq();
+         FileManifest = None;
       }
 
    override this.UnknownMessageHandler sender msg initialState =

@@ -110,7 +110,7 @@ type BackupContinuationManager(parent : IActor) =
       | (Retry, Retry) -> this.HandleNoErrorsState sender msg
 
    (* Public Methods *)
-   override this.Receive sender msg state =
+   override this.Receive sender msg _ =
       let unableToOpenFilesStrat = this.HandleUnableToOpenFiles msg.ArchiveResponse.UnableToOpenFiles
       let filesTooBigStrat = this.HandleFilesTooBig msg.ArchiveResponse.FilesTooBig
 

@@ -73,7 +73,7 @@ module Utilities =
       | bytes -> bytes / tebibyte |> BytesOr1
 
    ///<summary>Prints the message to the console with the current time</summary>
-   let PrintToConsole msg = lock LockObject (fun() -> printfn "[%A] - %A" DateTime.Now msg)
+   let PrintToConsole msg = lock LockObject (fun() -> String.Format("[{0}] - {1}", DateTime.Now, msg) |> Console.WriteLine )
 
    ///<summary>Prints a newline to the console</summary>
    let PrintNewLineToConsole() = lock LockObject (fun() -> printfn "")
