@@ -90,9 +90,8 @@ type KnapsackSolver(parent : IActor) =
 
       let totalAmountToArchive = Seq.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
       let rootPath = Path.GetPathRoot archivePath
-      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom
+      let capacity = Math.Max((new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom, 0L)
 
-      PrintToConsole "Calculating knapsack strategy"
       PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
       PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" ((|MebiBytes|) capacity)
 
@@ -107,7 +106,6 @@ type KnapsackSolver(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | Calculate(archivePath, files) -> 
-         PrintToConsole "Solving Knapsack Problem"
          sender +! Message.Compose this (KnapsackResponse.Files((Solve archivePath files)))
          Some Hold
 

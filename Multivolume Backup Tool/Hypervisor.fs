@@ -74,12 +74,9 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       | External(request) -> 
          match request with
          | Start -> 
-            PrintToConsole "Starting backup process"
             _backupManager +! Message.Compose this BackupMessage.Start
             Started
-         | Shutdown -> 
-            PrintToConsole "Shutting down"
-            ShuttingDown(None)
+         | Shutdown -> ShuttingDown(None)
          | _ -> state
       | _ -> state
 
@@ -87,9 +84,7 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       match msg with
       | External(request) ->
          match request with
-         | Wait(callback) -> 
-            PrintToConsole "Waiting for backup process to finish"
-            Waiting callback
+         | Wait(callback) -> Waiting callback
          | _ -> state
       | Internal(response) -> 
          match response with
@@ -123,7 +118,6 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
                match callbackOpt with
                | Some(callback) -> callback()
                | None -> ()
-               PrintToConsole "Shutdown complete"
                HypervisorState.Shutdown
             | _ -> state
          | _ -> state
@@ -147,17 +141,11 @@ type Hypervisor(appConfig : ApplicationConfiguration) as this =
       loop Initialized
 
    (* Public Methods *)
-   member public this.Begin() = 
-      PrintToConsole "Starting Hypervisor"
-      Start |> (this :> IActor).Post
+   member public this.Begin() = Start |> (this :> IActor).Post
 
-   member public this.Wait (callback : (unit -> unit)) = 
-      PrintToConsole "Setting wait callback on Hypervisor"
-      Wait(callback) |> (this :> IActor).Post
+   member public this.Wait (callback : (unit -> unit)) = Wait(callback) |> (this :> IActor).Post
 
-   member public this.Shutdown() = 
-      PrintToConsole "Shutting down Hypervisor"
-      Shutdown |> (this :> IActor).Post
+   member public this.Shutdown() = Shutdown |> (this :> IActor).Post
 
    interface IActor with
       member this.Post msg = 

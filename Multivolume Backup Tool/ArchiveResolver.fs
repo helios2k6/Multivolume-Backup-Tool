@@ -56,11 +56,8 @@ type ArchiveResolver(parent : IActor) as this =
    let TryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
       if File.Exists(pathOfManifestFile) then
-         PrintToConsole <| sprintf "Reading file manifest at"
-         File.ReadAllText(pathOfManifestFile)
-         |> TryDeserializeManifestFile
+         File.ReadAllText(pathOfManifestFile) |> TryDeserializeManifestFile
       else
-         PrintToConsole "File manifest does not exist"
          None
 
    let IsDiskFileNewerThanArchiveFile diskFile oldArchiveFile =

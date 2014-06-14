@@ -58,7 +58,6 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    
    (* Private Methods *)
    let HandleFileChooserResponse response initialState =
-      PrintToConsole "Received File Chooser response"
       match response with
       | FileChooserResponse.Files(files) -> 
          _archiveResolver +! Message.Compose this { ArchiveResolverMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; Files = files; }
@@ -67,7 +66,6 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       Some initialState
 
    let HandleArchiveResolverResponse (response : ArchiveResolverResponse) initialState =
-      PrintToConsole "Received Archive Resolver response"
       let processedFiles = response.FileManifest |> Seq.map (fun tuple -> tuple.Key) |> Set.ofSeq
       let allFilesAsSet = Set.ofSeq response.Files
       let filesToProcess = allFilesAsSet - processedFiles
@@ -78,12 +76,10 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleKnapsackMessage response initialState =
       match response with
       | KnapsackResponse.Files(files) -> 
-         PrintToConsole "Finished calculating which files will fit in the archive"
          _archiver +! Message.Compose this  { ArchiveMessage.ArchiveFilePath = initialState.Configuration.ArchiveFilePath; ArchiveMessage.Files = files; }
          Some initialState
    
    let HandleArchiveResponse (response : ArchiveResponse) initialState =
-      PrintToConsole "Finished creating archive"
       let backedUpFiles = Seq.append initialState.ProcessedFiles (response.BackedUpFiles |> Seq.map (fun tuple -> fst tuple))
       _fileManifestWriter +! Message.Compose this (WriteManifest(initialState.Configuration.ArchiveFilePath, response.BackedUpFiles |> Map.ofSeq))
       _continuationManager +! Message.Compose this { AllFiles = initialState.AllFiles; BackedUpFiles = backedUpFiles; ArchiveResponse = response }
@@ -92,7 +88,6 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleFileManifestWriterResponse response initialState =
       match response with 
       | FileManifestWriterResponse.Success -> 
-         PrintToConsole "Successfully wrote the file manifest to the archive"
          parent +! Message.Compose this BackupResponse.Success
       | FileManifestWriterResponse.Failure ->
          PrintToConsole "Failed to write the file manifest to the archive. Aborting"
@@ -123,7 +118,6 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          Some { initialState with Configuration = newConfiguration }
 
    let ShutdownChildren() =
-      PrintToConsole "Shutting down Backup Manager"
       _archiver +! Message.Compose this Die 
       _continuationManager +! Message.Compose this Die
       _fileChooser +! Message.Compose this Die
@@ -164,7 +158,6 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
 
    (* Public Methods *)
    override this.Receive sender msg state = 
-      PrintToConsole "Received initial message. Kicking off FileChooser"
       _fileChooser +! Message.Compose this (ChooseFiles(state.Configuration))
       Some state
 
@@ -183,9 +176,9 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       | Started ->
          match msg with
          | :? FileChooserResponse as response -> HandleFileChooserResponse response initialState
+         | :? ArchiveResolverResponse as response -> HandleArchiveResolverResponse response initialState
          | :? KnapsackResponse as response -> HandleKnapsackMessage response initialState
          | :? ArchiveResponse as response -> HandleArchiveResponse response initialState
-         | :? ArchiveResolverResponse as response -> HandleArchiveResolverResponse response initialState
          | :? BackupContinuationResponse as response -> HandleBackupContinuationResponse response initialState
          | :? VolumeSwitcherResponse as response -> HandleVolumeSwitcherResponse response initialState
          | _ -> Some initialState
