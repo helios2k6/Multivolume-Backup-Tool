@@ -89,7 +89,7 @@ type KnapsackSolver(parent : IActor) =
 
       let totalAmountToArchive = List.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
       let rootPath = Path.GetPathRoot archivePath
-      let capacity = Math.Max((new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom, 0L)
+      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom |> (|MebiBytes|)
 
       PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
       PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" ((|MebiBytes|) capacity)
