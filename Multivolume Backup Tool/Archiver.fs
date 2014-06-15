@@ -137,10 +137,20 @@ type Archiver(parent : IActor) =
       |> List.filter matchUp
       |> List.map (fun item -> (fstOfThree item, sndOfThree item))
 
+   let PrintBackedUpFileStatistics backedUpFiles =
+      backedUpFiles
+      |> List.map (fun item -> (new FileInfo(item)).Length |> (|MebiBytes|))
+      |> List.fold (fun runningSize item -> runningSize + item) 0L
+      |> sprintf "Total Amount Archived: %A Mebibytes"
+      |> PrintToConsole
+
    let FormArchiveResponse (archiveResultSequence : (String * String * FileArchiveResult) list) =
       let backedUpFiles = GetBackedUpFiles archiveResultSequence
       let unableToOpen = GetFilesUnableToOpen archiveResultSequence
       let filesTooBig = GetFilesTooLarge archiveResultSequence
+
+      backedUpFiles |> List.map (fun item -> fst item) |> PrintBackedUpFileStatistics
+
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 
    override this.Receive sender msg _ =
