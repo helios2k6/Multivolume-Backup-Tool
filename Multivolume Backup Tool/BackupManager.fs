@@ -132,6 +132,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
    let HandleVolumeSwitcherResponse response (initialState : BackupManagerState) =
       match response with 
       | VolumePath(volumePath) -> 
+         PrintToConsole "Continuing backup procedure"
          let newConfiguration = { initialState.Configuration with ArchiveFilePath = volumePath }
          let filesToBackup = (Set.ofList initialState.AllFiles) - (Set.ofList initialState.ProcessedFiles) |> Seq.toList
          _knapsackSolver +! Message.Compose this (Calculate(initialState.Configuration.ArchiveFilePath, filesToBackup))
