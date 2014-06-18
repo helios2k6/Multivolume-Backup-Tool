@@ -59,14 +59,14 @@ type Archiver(parent : IActor) =
          | FailedFileTooBig -> PrintToConsole <| sprintf "Could not archive file %s. File too big" originalFile
          | UnknownError(ex) -> PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" originalFile ex
 
-
-   let RerootPath filePath newRoot =
+   let RerootPath newRoot (fileEntry : FileEntry) =
+      let filePath = fileEntry.Path
       let pathRoot = Path.GetPathRoot(filePath)
       let derootedPath = filePath.Replace(pathRoot, String.Empty)
       Path.Combine(newRoot, derootedPath)
 
    let CalculateArchiveFilePath archivePath fileToArchive =
-      let calculatedArchiveFilePath = RerootPath fileToArchive archivePath
+      let calculatedArchiveFilePath = RerootPath archivePath fileToArchive
       if calculatedArchiveFilePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
          let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive)
          let ext = Path.GetExtension(fileToArchive)
@@ -90,10 +90,9 @@ type Archiver(parent : IActor) =
 
    let TryCopy fileA fileB =
       try
-         (*
          CreateIntermediateDirectoryStructure fileB
          File.Copy(fileA, fileB, true)
-         *)
+
          Success
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -111,7 +110,7 @@ type Archiver(parent : IActor) =
       (filePath, copiedFilePath, result)
 
    let BackupFiles archiveFilePath files =
-      let foldFunc (state : (String * String * FileArchiveResult) list) file =
+      let foldFunc (state : (FileEntry * FileEntry * FileArchiveResult) list) file =
          let result = ArchiveFile archiveFilePath file
          PrintResult result
          result :: state

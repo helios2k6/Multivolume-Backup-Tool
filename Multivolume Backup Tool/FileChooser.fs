@@ -37,18 +37,22 @@ type FileChooser(parent : IActor) =
    inherit ActorBase<FileChooserMessage, UnitPlaceHolder>(parent)
 
    (* Private Methods *)
-   member private this.StringLike str wildcard =
+   let StringLike str wildcard =
       let regex = new Regex("^" + Regex.Escape(wildcard).Replace(@"\*", ".*").Replace(@"\?", ".") + "$", RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
       regex.IsMatch(str)
 
-   member private this.IsFileOnList (file : String) (files : seq<String>) = files |> Seq.exists (fun pattern -> this.StringLike file pattern)
+   let IsFileOnList file files = files |> Seq.exists (fun pattern -> StringLike file pattern)
 
-   member private this.ShouldAcceptFile (file : String) (blacklist : seq<String>) (whitelist : seq<String>) =
-      if this.IsFileOnList file blacklist then
+   let FileExists file = File.Exists file
+
+   let ShouldAcceptFile file blacklist whitelist =
+      if not <| FileExists file then
          false
-      elif this.IsFileOnList file whitelist then
+      elif IsFileOnList file blacklist then
+         false
+      elif IsFileOnList file whitelist then
          true
-      elif not (Seq.isEmpty whitelist) then
+      elif not <| Seq.isEmpty whitelist then
          false
       else
          true
@@ -58,8 +62,8 @@ type FileChooser(parent : IActor) =
          query {
             for folder in config.Folders do
             for file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories) do
-            where (this.ShouldAcceptFile file config.Blacklist config.Whitelist)
-            select file
+            where (ShouldAcceptFile file config.Blacklist config.Whitelist)
+            select (new FileInfo(file))
          }
          |> Seq.toList
          |> Some
@@ -72,6 +76,7 @@ type FileChooser(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | ChooseFiles(config) ->
+         PrintToConsole "Choosing files"
          let chosenFilesOption = this.TryChooseFiles config 
          match chosenFilesOption with
          | Some(folders) -> sender +! Message.Compose this (FileChooserResponse.Files(folders))

@@ -26,8 +26,10 @@ namespace MBT
 namespace MBT.Messages
 
 open MBT
+open MBT.Core
 open Microsoft.FSharp.Collections
 open System
+open System.IO
 
 ///<summary>The shutdown message sent to actors</summary>
 type ShutdownMessage = Die
@@ -39,22 +41,22 @@ type ShutdownResponse = Finished
 type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 
 ///<summary>The response message from the File Chooser</summary>
-type FileChooserResponse = Files of String list | Failure
+type FileChooserResponse = Files of FileEntry list | Failure
 
 ///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : String list }
+type ArchiveResolverMessage = { ArchiveFilePath : String; Files : FileEntry list }
 
 ///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : Map<String, String>; Files : String list } 
+type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : FileManifest; Files : FileEntry list } 
 
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
-type KnapsackMessage = Calculate of String * String list
+type KnapsackMessage = Calculate of String * FileEntry list
 
 ///<summary>The result of the knapsack solver</summary>
-type KnapsackResponse = Files of String list
+type KnapsackResponse = Files of FileEntry list
 
 ///<summary>A message that can be sent to an Archiver</summary>
-type ArchiveMessage = { ArchiveFilePath : String; Files : String list; }
+type ArchiveMessage = { ArchiveFilePath : String; Files : FileEntry list; }
 
 ///<summary>The result of attempting to backup a particular file</summary>
 type FileArchiveResult =
@@ -63,22 +65,22 @@ type FileArchiveResult =
    | FailureOutOfSpace
 
 ///<summary>The response message from the Archiver</summary>
-type ArchiveResponse = { BackedUpFiles : (String * String) list; UnableToOpenFiles : String list; FilesTooBig : String list }
+type ArchiveResponse = { BackedUpFiles : (FileEntry * FileEntry) list; UnableToOpenFiles : FileEntry list; FilesTooBig : FileEntry list }
 
 ///<summary>A message that can be sent to the File Manifest Writer</summary>
-type FileManifestWriterMessage = WriteManifest of String * Map<String, String>
+type FileManifestWriterMessage = WriteManifest of String * FileManifest
 
 ///<summary>The response message from the File Manifest Writer</summary>
 type FileManifestWriterResponse = Success | Failure
 
 ///<summary>The message you can send to the Backup Continuation Manager</summary>
-type BackupContinuationMessage = { AllFiles : String list; BackedUpFiles : String list; ArchiveResponse : ArchiveResponse }
+type BackupContinuationMessage = { AllFiles : FileEntry list; BackedUpFiles : FileEntry list; ArchiveResponse : ArchiveResponse }
 
 ///<summary>The responses from the Backup Continuation Manager</summary>
 type BackupContinuationResponse =
    | Finished
    | Abort
-   | IgnoreFiles of String list
+   | IgnoreFiles of FileEntry list
    | ContinueProcessing
 
 ///<summary>The message you can send to the Volume Switcher</summary>

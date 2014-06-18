@@ -29,6 +29,9 @@ open MBT.Core
 open MBT.Operations
 open MBT.Messages
 open MBT.Core.Utilities
+open MBT.Core.Predicates
+open MBT.Core.Seq
+open MBT.Core.Monads
 open System
 open System.IO
 open System.Collections.Generic
@@ -52,7 +55,6 @@ type ArchiveResolver(parent : IActor) as this =
          | ex -> 
             PrintToConsole <| sprintf "Could not deserialize file manifest. Reason: %A" ex
             None
-
    let TryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
       if File.Exists(pathOfManifestFile) then
@@ -60,17 +62,27 @@ type ArchiveResolver(parent : IActor) as this =
       else
          None
 
-   let IsDiskFileNewerThanArchiveFile diskFile oldArchiveFile =
-      let oldFileInfo = new FileInfo(oldArchiveFile)
-      let newFileInfo = new FileInfo(diskFile)
+   let TranslateRawManifest (fileManifest : Map<String, String>) =
+      let mapAction tuple = 
+         let sourceFilePath = fst tuple
+         let destFilePath = snd tuple
+         
+         if File.Exists sourceFilePath && File.Exists destFilePath then
+            Some (new FileEntry(sourceFilePath), new FileEntry(destFilePath))
+         else
+            None
 
-      newFileInfo.LastWriteTimeUtc > oldFileInfo.LastWriteTimeUtc
+      fileManifest
+      |> Seq.map (|KeyValue|)
+      |> Seq.map mapAction
+      |> Seq.UnwrapOptionalSeq
+      |> Map.ofSeq
 
-   let ProcessFileFromExistingArchive (oldFileManifest : Map<String, String>) fileToBackUp =
+   let ProcessFileFromExistingArchive (oldFileManifest : FileManifest) (fileToBackUp : FileEntry) =
       let item = oldFileManifest.TryFind fileToBackUp
       match item with
       | Some(oldArchivedFile) -> 
-         if not <| File.Exists oldArchivedFile || IsDiskFileNewerThanArchiveFile fileToBackUp oldArchivedFile then
+         if fileToBackUp.Info.LastWriteTimeUtc > oldArchivedFile.Info.LastWriteTimeUtc then
             AddOrReplaceArchiveFile
          else
             KeepArchiveFile
@@ -93,8 +105,12 @@ type ArchiveResolver(parent : IActor) as this =
 
    (* Public Methods *)
    override this.Receive sender msg state =
-      let existingManifestFile = TryReadManifestFile msg.ArchiveFilePath
-      match existingManifestFile with
+      let translatedManifestFile = maybe {
+         let! manifest = TryReadManifestFile msg.ArchiveFilePath
+         return TranslateRawManifest manifest 
+      }
+
+      match translatedManifestFile with
       | Some(manifestFile) -> 
          let newFileManifestAndProcessedFiles = ProcessExistingArchive manifestFile msg.Files
          SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)

@@ -35,15 +35,13 @@ open System
 open System.IO
 
 ///<summary>An IITem that represents a file</summary>
-type FileItemWrapper(item : String, resolution : int64 -> int64) =
-   let _fileInfo = new FileInfo(item)
-
+type FileItemWrapper(item : FileEntry, resolution : int64 -> int64) =
    (* Public Methods *)
    member this.File with get() = item
 
    interface IItem with
-      member this.Value with get() = _fileInfo.Length  |> resolution
-      member this.Weight with get() = _fileInfo.Length |> resolution
+      member this.Value with get() = item.Info.Length |> resolution
+      member this.Weight with get() = item.Info.Length |> resolution
    end
 
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
@@ -54,18 +52,18 @@ type KnapsackSolver(parent : IActor) =
    static let WiggleRoom = 50L * mebibyte
 
    (* Private Methods *)
-   let (|FileName|) (item : IItem) = (item :?> FileItemWrapper).File
+   let (|FileEntry|) (item : IItem) = (item :?> FileItemWrapper).File
    let (|AsIItem|) item = item :> IItem
    let (|FileSize|) (item : IItem) = item.Weight
 
    let SolveUsingGreedy archivePath (files : IItem list) (availableCapacity : int64) = 
-      let foldAction (state : Set<String> * int64) (item : IItem) =
+      let foldAction (state : Set<FileEntry> * int64) (item : IItem) =
          let selectedFiles = fst state
          let remainingCapacity = snd state
          let size = item.Weight
-         let fileName = (|FileName|) item
+         let fileEntry = (|FileEntry|) item
          if size <= remainingCapacity then
-            (selectedFiles.Add fileName, remainingCapacity - size)
+            (selectedFiles.Add fileEntry, remainingCapacity - size)
          else
             state
 
@@ -78,9 +76,9 @@ type KnapsackSolver(parent : IActor) =
 
       solver.Solve(files, availableCapacity |> (|MebiBytes|))
       |> Seq.toList
-      |> List.map (|FileName|)
+      |> List.map (|FileEntry|)
 
-   let Solve archivePath (files : String list) = 
+   let Solve archivePath (files : FileEntry list) = 
       let filesAsIItems = 
          files 
          |> List.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)) |> (|AsIItem|))
@@ -105,6 +103,7 @@ type KnapsackSolver(parent : IActor) =
    override this.Receive sender msg state =
       match msg with
       | Calculate(archivePath, files) -> 
+         PrintToConsole "Calculating files to store"
          sender +! Message.Compose this (KnapsackResponse.Files((Solve archivePath files)))
          Some Hold
 

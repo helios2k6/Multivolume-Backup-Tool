@@ -30,18 +30,19 @@ open MBT.Messages
 open MBT.Operations
 open Microsoft.FSharp.Collections
 open System
+open System.IO
 
 type ActorStatus = Started | ShuttingDown | Shutdown
 
 ///<summary>The backup manager's state object</summary>
 type BackupManagerState = 
    { 
-      AllFiles : String list; 
-      ProcessedFiles : String list;
+      AllFiles : FileInfo list; 
+      ProcessedFiles : FileInfo list;
       Configuration : ApplicationConfiguration; 
       Status : ActorStatus; 
       ChildrenStatus : (IActor * ActorStatus) list;
-      FileManifest : Map<String, String> Option
+      FileManifest : FileManifest Option
    }
 
 ///<summary>The main actor in charge of backing up the system</summary>

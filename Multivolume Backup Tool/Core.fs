@@ -27,6 +27,7 @@ namespace MBT.Core
 
 open System
 open System.Collections.Generic
+open System.IO
 
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
@@ -82,11 +83,41 @@ module Utilities =
 module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
 
+module Predicates =
+   ///<summary>Checks an optional to see if it's Some value</summary>
+   let internal IsSome opt = 
+      match opt with
+      | Some(_) -> true
+      | None -> false
+
 module Seq =
    ///<summary>Applies a predicate to the sequence to see if every item fulfills the predicate. Empty sequences return true!</summary>
    let internal All predicate seq = 
       let foldFunc status item = if status && predicate(item) then true else false
       seq |> Seq.fold foldFunc true
+
+   ///<summary>Gets the tail of the sequence, or the empty sequence if the sequence is empty</summary>
+   let internal Tail seq = 
+      if Seq.isEmpty seq then
+         Seq.empty
+      else
+         Seq.skip 1 seq
+
+   ///<summary>Gets the head and tail of a sequence</summary>
+   let internal (|HeadAndTail|) aSeq = (Seq.head aSeq, Tail aSeq)
+
+   ///<summary>Unwraps a sequence of optional values into their raw values</summary>
+   let internal UnwrapOptionalSeq inSeq = 
+      let rec generateSeqOnSomeOnly state remainingSeq =
+         if Seq.isEmpty remainingSeq then
+            state
+         else
+            let head, tail = (|HeadAndTail|) remainingSeq
+            match head with
+            | Some(a) -> generateSeqOnSomeOnly (seq { yield! state; yield a }) tail
+            | None -> generateSeqOnSomeOnly state tail
+
+      generateSeqOnSomeOnly Seq.empty inSeq
 
 module Tuple =
    ///<summary>Takes the first item of a 3-tuple</summary>
@@ -102,3 +133,4 @@ module Tuple =
    let thrdOfThree tuple =
       match tuple with
       (_, _, c) -> c
+
