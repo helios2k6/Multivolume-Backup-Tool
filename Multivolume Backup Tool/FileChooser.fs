@@ -63,7 +63,7 @@ type FileChooser(parent : IActor) =
             for folder in config.Folders do
             for file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories) do
             where (ShouldAcceptFile file config.Blacklist config.Whitelist)
-            select (new FileInfo(file))
+            select (new FileEntry(file))
          }
          |> Seq.toList
          |> Some

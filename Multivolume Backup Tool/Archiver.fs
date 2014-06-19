@@ -50,14 +50,14 @@ type Archiver(parent : IActor) =
    static let ErrorHandleDiskFullHResult = 0x27
 
    (* Private Methods *)
-   let PrintResult result =
+   let PrintResult (result : FileEntry * String * FileArchiveResult) =
       match result with
       (originalFile, backedUpFile, fileArchiveResult) -> 
          match fileArchiveResult with
-         | Success -> PrintToConsole <| sprintf "Successfully archived file %s to %s" originalFile backedUpFile
-         | FailedCouldNotReadFile -> PrintToConsole <| sprintf "Could not archive file %s. Failed to read file" originalFile
-         | FailedFileTooBig -> PrintToConsole <| sprintf "Could not archive file %s. File too big" originalFile
-         | UnknownError(ex) -> PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" originalFile ex
+         | Success -> PrintToConsole <| sprintf "Successfully archived file %s to %s" originalFile.Path backedUpFile
+         | FailedCouldNotReadFile -> PrintToConsole <| sprintf "Could not archive file %s. Failed to read file" originalFile.Path
+         | FailedFileTooBig -> PrintToConsole <| sprintf "Could not archive file %s. File too big" originalFile.Path
+         | UnknownError(ex) -> PrintToConsole <| sprintf "Could not archive file %s. Unknown error: %A" originalFile.Path ex
 
    let RerootPath newRoot (fileEntry : FileEntry) =
       let filePath = fileEntry.Path
@@ -65,11 +65,11 @@ type Archiver(parent : IActor) =
       let derootedPath = filePath.Replace(pathRoot, String.Empty)
       Path.Combine(newRoot, derootedPath)
 
-   let CalculateArchiveFilePath archivePath fileToArchive =
+   let CalculateArchiveFilePath archivePath (fileToArchive : FileEntry) =
       let calculatedArchiveFilePath = RerootPath archivePath fileToArchive
       if calculatedArchiveFilePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
-         let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive)
-         let ext = Path.GetExtension(fileToArchive)
+         let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive.Path)
+         let ext = Path.GetExtension(fileToArchive.Path)
          Path.Combine(archivePath, fileNameWithoutExt, "_archive_file", ext)
       else
          calculatedArchiveFilePath
@@ -103,14 +103,14 @@ type Archiver(parent : IActor) =
          | :? IOException as ex -> HandleIOException ex
          | :? NotSupportedException as ex -> UnknownError(ex)
 
-   let ArchiveFile archiveFilePath filePath = 
-      let copiedFilePath = CalculateArchiveFilePath archiveFilePath filePath
-      let result = TryCopy filePath copiedFilePath
+   let ArchiveFile archiveFilePath (filePath : FileEntry) = 
+      let filePathToCopyTo = CalculateArchiveFilePath archiveFilePath filePath
+      let result = TryCopy filePath.Path filePathToCopyTo
 
-      (filePath, copiedFilePath, result)
+      (filePath, filePathToCopyTo, result)
 
-   let BackupFiles archiveFilePath files =
-      let foldFunc (state : (FileEntry * FileEntry * FileArchiveResult) list) file =
+   let BackupFiles archiveFilePath (files : FileEntry list) =
+      let foldFunc (state : (FileEntry * String * FileArchiveResult) list) file =
          let result = ArchiveFile archiveFilePath file
          PrintResult result
          result :: state
@@ -118,37 +118,38 @@ type Archiver(parent : IActor) =
       PrintToConsole "Beginning archive process"
       List.fold foldFunc list.Empty files
    
-   let FilterForResult (archiveResultSequence : (String * String * FileArchiveResult) list) result =
+   let FilterForResult (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) result =
       let matchResult item = (thrdOfThree item) = result
 
       archiveResultSequence
       |> List.filter matchResult
       |> List.map fstOfThree
 
-   let GetFilesTooLarge (archiveResultSequence : (String * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedFileTooBig
+   let GetFilesTooLarge (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedFileTooBig
 
-   let GetFilesUnableToOpen (archiveResultSequence : (String * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedCouldNotReadFile
+   let GetFilesUnableToOpen (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) = FilterForResult archiveResultSequence FailedCouldNotReadFile
 
-   let GetBackedUpFiles (archiveResultSequence : (String * String * FileArchiveResult) list) =
+   let GetBackedUpFiles (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) =
       let matchUp tuple = (thrdOfThree tuple) = Success
 
       archiveResultSequence
       |> List.filter matchUp
-      |> List.map (fun item -> (fstOfThree item, sndOfThree item))
+      |> List.map (fun item -> (fstOfThree item, new FileEntry(sndOfThree item)))
 
-   let PrintBackedUpFileStatistics backedUpFiles =
+   let PrintBackedUpFileStatistics (backedUpFiles : FileEntry list) =
+      let foldAction state (item : FileEntry) = state + item.Info.Length |> (|MebiBytes|)
+
       backedUpFiles
-      |> List.map (fun item -> (new FileInfo(item)).Length |> (|MebiBytes|))
-      |> List.fold (fun runningSize item -> runningSize + item) 0L
+      |> List.fold foldAction 0L
       |> sprintf "Total Amount Archived: %A Mebibytes"
       |> PrintToConsole
 
-   let FormArchiveResponse (archiveResultSequence : (String * String * FileArchiveResult) list) =
+   let FormArchiveResponse (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) =
       let backedUpFiles = GetBackedUpFiles archiveResultSequence
       let unableToOpen = GetFilesUnableToOpen archiveResultSequence
       let filesTooBig = GetFilesTooLarge archiveResultSequence
 
-      backedUpFiles |> List.map (fun item -> fst item) |> PrintBackedUpFileStatistics
+      backedUpFiles |> List.map fst |> PrintBackedUpFileStatistics
 
       { BackedUpFiles = backedUpFiles; UnableToOpenFiles = unableToOpen; FilesTooBig = filesTooBig }
 

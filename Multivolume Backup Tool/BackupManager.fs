@@ -37,8 +37,8 @@ type ActorStatus = Started | ShuttingDown | Shutdown
 ///<summary>The backup manager's state object</summary>
 type BackupManagerState = 
    { 
-      AllFiles : FileInfo list; 
-      ProcessedFiles : FileInfo list;
+      AllFiles : FileEntry list; 
+      ProcessedFiles : FileEntry list;
       Configuration : ApplicationConfiguration; 
       Status : ActorStatus; 
       ChildrenStatus : (IActor * ActorStatus) list;
