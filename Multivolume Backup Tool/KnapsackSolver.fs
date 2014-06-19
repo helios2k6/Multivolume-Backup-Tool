@@ -28,6 +28,7 @@ open Knapsack
 open Knapsack.Details
 open MBT
 open MBT.Core
+open MBT.Core.Measure
 open MBT.Core.Utilities
 open MBT.Operations
 open MBT.Messages
@@ -74,10 +75,10 @@ type KnapsackSolver(parent : IActor) =
    let SolveUsingDP archivePath (files : IItem list) (availableCapacity : int64) =
       let solver = new ZeroOneDPKnapsackSolver()
 
-      solver.Solve(files, availableCapacity |> (|MebiBytes|))
-      |> Seq.toList
+      solver.Solve(files, availableCapacity) 
+      |> Seq.toList 
       |> List.map (|FileEntry|)
-
+      
    let Solve archivePath (files : FileEntry list) = 
       let filesAsIItems = 
          files 
@@ -90,7 +91,7 @@ type KnapsackSolver(parent : IActor) =
       let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom |> (|MebiBytes|)
 
       PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
-      PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" ((|MebiBytes|) capacity)
+      PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" capacity
 
       if totalAmountToArchive > (|MebiBytes|) (10L * gibibyte) then
          PrintToConsole "Total amount of files to archive is GREATER than 10 Gibibytes. Using greedy solution algorithm"

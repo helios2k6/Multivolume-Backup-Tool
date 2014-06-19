@@ -25,6 +25,7 @@
 namespace MBT
 namespace MBT.Core
 
+open MBT.Core.Measure
 open System
 open System.IO
 
@@ -37,6 +38,9 @@ type FileEntry(filePath : String) =
 
    ///<summary>Get the path passed into this FileEntry</summary>
    member this.Path with get() = this.Info.FullName
+
+   ///<summary>Get the size of this FileEntry in bytes</summary>
+   member this.Size with get() = this.Info.Length |> toByte
 
    interface IComparable<FileEntry> with
       member this.CompareTo other = filePath.CompareTo other.Path

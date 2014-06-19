@@ -32,6 +32,41 @@ open System.IO
 ///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
 type UnitPlaceHolder = Hold
 
+///<summary> Units of measure</summary>
+module Measure =
+   [<Measure>]
+   type byte
+   
+   [<Measure>]
+   type kibibyte
+   
+   [<Measure>]
+   type mebibyte
+
+   [<Measure>]
+   type gibibyte
+
+   [<Measure>]
+   type tebibyte
+
+   let toByte x = x * 1L<byte>
+
+   let bytesPerKibibyte = 1024L<byte/kibibyte>
+
+   let kibibytesPerMebibyte = 1024L<kibibyte/mebibyte>
+
+   let mebibytesPerGibibyte = 1024L<mebibyte/gibibyte>
+
+   let gibibytesPerTebibyte = 1024L<gibibyte/tebibyte>
+
+   let bytesToKibibytes (x : int64<byte>) = x / bytesPerKibibyte
+
+   let kibiBytesToMebibytes (x : int64<kibibyte>) = x / kibibytesPerMebibyte
+
+   let mebibytesToGibibytes (x : int64<mebibyte>) = x / mebibytesPerGibibyte
+
+   let gibibytesToTebibytes (x : int64<gibibyte>) = x / gibibytesPerTebibyte
+
 ///<summary>Utility module</summary>
 module Utilities =
    let private LockObject = new Object()

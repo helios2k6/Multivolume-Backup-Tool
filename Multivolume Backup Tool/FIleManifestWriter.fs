@@ -31,11 +31,16 @@
  open MBT.Messages
  open System
  open System.IO
+ open System.Collections.Generic
 
  ///<summary>Writes the file manifest to the archive directory</summary>
  type FileManifestWriter(parent : IActor) =
    inherit ActorBase<FileManifestWriterMessage, UnitPlaceHolder>(parent)
    
+   let TranslateFileManifest (fileManifest : FileManifest) = 
+      let mapAction (item : KeyValuePair<FileEntry, FileEntry>) = (item.Key.Path, item.Value.Path)
+      fileManifest |> Seq.map mapAction |> Map.ofSeq
+
    let TryWriteManifestFile archivePath fileManifest =
       try
          let serializedContext = JsonConvert.SerializeObject(fileManifest, Formatting.Indented)
@@ -49,7 +54,7 @@
    override this.Receive sender msg _ =
       match msg with
       | WriteManifest(archivePath, fileManifest) -> 
-         let result = TryWriteManifestFile archivePath fileManifest
+         let result = fileManifest |> TranslateFileManifest |> TryWriteManifestFile archivePath
          sender +! Message.Compose this result
       Some Hold
 
