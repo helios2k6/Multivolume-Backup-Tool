@@ -36,14 +36,14 @@ open System
 open System.IO
 
 ///<summary>An IITem that represents a file</summary>
-type FileItemWrapper(item : FileEntry) =
+type FileItemWrapper(item : FileEntry, resolution : int64 -> int64) =
    (* Public Methods *)
    member this.File with get() = item
 
    member this.Size with get() = item.Size
 
    interface IItem with
-      member this.Value with get() = item.Info.Length |> WithByteMeasure |> BytesToMebibytes |> MebibytesOr1 |> WithoutMeasure
+      member this.Value with get() = item.Info.Length |> resolution
       member this.Weight with get() = (this :> IItem).Value
    end
 
@@ -57,8 +57,25 @@ type KnapsackSolver(parent : IActor) =
 
    (* Private Methods *)
    let FileEntry (item : IItem) = (item :?> FileItemWrapper).File
+   
    let AsIItem item = item :> IItem
+   
    let FileSize (item : IItem) = item.Weight * 1L<mebibyte>
+
+   let DetermineResolution (capacity : int64<byte>) = 
+      let resolutionTransform magnitudeTransform length = length |> WithByteMeasure |> magnitudeTransform |> WithoutMeasure
+
+      let expandedCapacity = capacity + (capacity / 10L) //Extra wiggle room
+
+      if expandedCapacity >= 1L<tebibyte> * bytesPerTebibyte then
+         resolutionTransform BytesToGibibytes
+      elif expandedCapacity >= 1L<gibibyte> * bytesPerGibibyte then
+         resolutionTransform BytesToMebibytes
+      elif expandedCapacity >= 1L<mebibyte> * bytesPerMebibyte then
+         resolutionTransform BytesToKibibytes
+      else
+         fun length -> length
+
    let DriveSpace rootPath = 
       let info = new DriveInfo(rootPath)
       info.AvailableFreeSpace |> WithByteMeasure |> BytesToMebibytes
@@ -86,14 +103,17 @@ type KnapsackSolver(parent : IActor) =
       |> List.map FileEntry
       
    let Solve archivePath (files : FileEntry list) = 
+      let capacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
+
+      let resolutionTransformation = MebibytesToKibibytes >> KibibytesToBytes >> DetermineResolution <| capacity
+
       let filesAsIItems = 
          files 
-         |> List.map (fun i -> new FileItemWrapper(i) |> AsIItem)
+         |> List.map (fun i -> new FileItemWrapper(i, resolutionTransformation) |> AsIItem)
          |> List.sortBy (fun i -> i.Value)
          |> List.rev
 
       let totalAmountToArchive = List.sumBy (fun item -> FileSize item) filesAsIItems
-      let capacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
 
       PrintToConsole <| sprintf "Total amount to archive is: %A mebibytes" totalAmountToArchive
       PrintToConsole <| sprintf "Total destination drive capaity is: %A mebibytes" capacity

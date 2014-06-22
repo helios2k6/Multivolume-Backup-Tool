@@ -49,14 +49,6 @@ module Measure =
    [<Measure>]
    type tebibyte
 
-   ///<summary>Discriminate union to wrap the data types
-   type DataMetric = 
-      | Bytes of int64<byte> 
-      | Kibibytes of int64<kibibyte> 
-      | Mebibytes of int64<mebibyte>
-      | Gibibytes of int64<gibibyte>
-      | Tebibytes of int64<tebibyte>
-
    let WithByteMeasure x = x * 1L<byte>
 
    let WithKibibyteMeasure x = x * 1L<kibibyte>
@@ -71,11 +63,11 @@ module Measure =
 
    let bytesPerKibibyte = 1024L<byte/kibibyte>
 
-   let bytesPerMebibyte = 1024L<kibibyte> * bytesPerKibibyte
+   let bytesPerMebibyte = 1024L<kibibyte/mebibyte> * bytesPerKibibyte
 
-   let bytesPerGibibyte = 1024L<mebibyte> * bytesPerMebibyte
+   let bytesPerGibibyte = 1024L<mebibyte/gibibyte> * bytesPerMebibyte
 
-   let bytesPerTebibyte = 1024L<gibibyte> * bytesPerGibibyte
+   let bytesPerTebibyte = 1024L<gibibyte/tebibyte> * bytesPerGibibyte
 
    let kibibytesPerMebibyte = 1024L<kibibyte/mebibyte>
 
@@ -87,14 +79,18 @@ module Measure =
    //Upward Transformations
    let BytesToKibibytes (x : int64<byte>) = x / bytesPerKibibyte
 
-   let BytesToMebibytes (x : int64<byte>) = x / bytesPerMebibyte * 1L<mebibyte>
+   let BytesToMebibytes (x : int64<byte>) = BytesToKibibytes x / kibibytesPerMebibyte
 
-   let BytesToGibibytes (x : int64<byte>) = x / bytesPerGibibyte * 1L<gibibyte>
+   let BytesToGibibytes (x : int64<byte>) = BytesToMebibytes x / mebibytesPerGibibyte
 
-   let BytesToTebibytes (x : int64<byte>) = x / bytesPerTebibyte * 1L<tebibyte>
+   let BytesToTebibytes (x : int64<byte>) = BytesToGibibytes x / gibibytesPerTebibyte
    
    //Downward Transformations
    let GibibytesToMebibytes (x : int64<gibibyte>) = x * mebibytesPerGibibyte
+
+   let MebibytesToKibibytes (x : int64<mebibyte>) = x * kibibytesPerMebibyte
+
+   let KibibytesToBytes (x : int64<kibibyte>) = x * bytesPerKibibyte
    
    let MebibytesOr1 (x : int64<mebibyte>) = if x = 0L<mebibyte> then 1L<mebibyte> else x
 
