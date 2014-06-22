@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Measure
 open MBT.Core.Utilities
 open MBT.Core.Tuple
 open MBT.Operations
@@ -138,10 +139,9 @@ type Archiver(parent : IActor) =
       |> List.map (fun item -> (fstOfThree item, new FileEntry(sndOfThree item)))
 
    let PrintBackedUpFileStatistics (backedUpFiles : FileEntry list) =
-      let foldAction state (item : FileEntry) = state + item.Info.Length |> (|MebiBytes|)
-
       backedUpFiles
-      |> List.fold foldAction 0L
+      |> List.sumBy (fun entry -> entry.Size)
+      |> BytesToMebibytes
       |> sprintf "Total Amount Archived: %A Mebibytes"
       |> PrintToConsole
 

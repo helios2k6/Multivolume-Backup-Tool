@@ -40,7 +40,7 @@ type FileEntry(filePath : String) =
    member this.Path with get() = this.Info.FullName
 
    ///<summary>Get the size of this FileEntry in bytes</summary>
-   member this.Size with get() = this.Info.Length |> toByte
+   member this.Size with get() = this.Info.Length |> WithByteMeasure
 
    interface IComparable<FileEntry> with
       member this.CompareTo other = filePath.CompareTo other.Path

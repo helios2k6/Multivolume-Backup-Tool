@@ -25,7 +25,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Multivolume_Backup_Tool.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartArguments>--archive-path C:\Users\anjohnson\Downloads --folders C:\Users\anjohnson\Pictures</StartArguments>
+    <StartArguments>--archive-path J:\ --folders "D:\Andrew\Pictures\Anime Snapshots Device"</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

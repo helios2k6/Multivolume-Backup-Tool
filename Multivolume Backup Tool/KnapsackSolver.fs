@@ -36,13 +36,15 @@ open System
 open System.IO
 
 ///<summary>An IITem that represents a file</summary>
-type FileItemWrapper(item : FileEntry, resolution : int64 -> int64) =
+type FileItemWrapper(item : FileEntry) =
    (* Public Methods *)
    member this.File with get() = item
 
+   member this.Size with get() = item.Size
+
    interface IItem with
-      member this.Value with get() = item.Info.Length |> resolution
-      member this.Weight with get() = item.Info.Length |> resolution
+      member this.Value with get() = item.Info.Length |> WithByteMeasure |> BytesToMebibytes |> MebibytesOr1 |> WithoutMeasure
+      member this.Weight with get() = (this :> IItem).Value
    end
 
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
@@ -50,19 +52,23 @@ type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
    (* Private Fields *)
-   static let WiggleRoom = 50L * mebibyte
+   static let WiggleRoom = 50L<mebibyte>
+   static let DPDriveCapacityCeiling = 10L<gibibyte>
 
    (* Private Methods *)
-   let (|FileEntry|) (item : IItem) = (item :?> FileItemWrapper).File
-   let (|AsIItem|) item = item :> IItem
-   let (|FileSize|) (item : IItem) = item.Weight
+   let FileEntry (item : IItem) = (item :?> FileItemWrapper).File
+   let AsIItem item = item :> IItem
+   let FileSize (item : IItem) = item.Weight * 1L<mebibyte>
+   let DriveSpace rootPath = 
+      let info = new DriveInfo(rootPath)
+      info.AvailableFreeSpace |> WithByteMeasure |> BytesToMebibytes
 
-   let SolveUsingGreedy archivePath (files : IItem list) (availableCapacity : int64) = 
-      let foldAction (state : Set<FileEntry> * int64) (item : IItem) =
+   let SolveUsingGreedy archivePath files (availableCapacity : int64<mebibyte>) = 
+      let foldAction (state : Set<FileEntry> * int64<mebibyte>) (item : IItem) =
          let selectedFiles = fst state
          let remainingCapacity = snd state
-         let size = item.Weight
-         let fileEntry = (|FileEntry|) item
+         let size = item.Weight * 1L<mebibyte>
+         let fileEntry = FileEntry item
          if size <= remainingCapacity then
             (selectedFiles.Add fileEntry, remainingCapacity - size)
          else
@@ -72,28 +78,27 @@ type KnapsackSolver(parent : IActor) =
       |> fst
       |> Seq.toList
 
-   let SolveUsingDP archivePath (files : IItem list) (availableCapacity : int64) =
+   let SolveUsingDP archivePath files (availableCapacity : int64<mebibyte>) =
       let solver = new ZeroOneDPKnapsackSolver()
 
-      solver.Solve(files, availableCapacity) 
+      solver.Solve(files, availableCapacity |> WithoutMeasure) 
       |> Seq.toList 
-      |> List.map (|FileEntry|)
+      |> List.map FileEntry
       
    let Solve archivePath (files : FileEntry list) = 
       let filesAsIItems = 
          files 
-         |> List.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)) |> (|AsIItem|))
+         |> List.map (fun i -> new FileItemWrapper(i) |> AsIItem)
          |> List.sortBy (fun i -> i.Value)
          |> List.rev
 
-      let totalAmountToArchive = List.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
-      let rootPath = Path.GetPathRoot archivePath
-      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom |> (|MebiBytes|)
+      let totalAmountToArchive = List.sumBy (fun item -> FileSize item) filesAsIItems
+      let capacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
 
-      PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
-      PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" capacity
+      PrintToConsole <| sprintf "Total amount to archive is: %A mebibytes" totalAmountToArchive
+      PrintToConsole <| sprintf "Total destination drive capaity is: %A mebibytes" capacity
 
-      if totalAmountToArchive > (|MebiBytes|) (10L * gibibyte) then
+      if totalAmountToArchive > GibibytesToMebibytes DPDriveCapacityCeiling then
          PrintToConsole "Total amount of files to archive is GREATER than 10 Gibibytes. Using greedy solution algorithm"
          SolveUsingGreedy archivePath filesAsIItems capacity
       else
