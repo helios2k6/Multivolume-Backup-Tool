@@ -47,6 +47,8 @@ type FileItemWrapper(item : FileEntry, resolution : int64 -> int64) =
       member this.Weight with get() = (this :> IItem).Value
    end
 
+type private Resolution = Bytes | Kibibytes | Mebibytes | Gibibytes
+
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
 type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
@@ -60,21 +62,19 @@ type KnapsackSolver(parent : IActor) =
    
    let AsIItem item = item :> IItem
    
-   let FileSize (item : IItem) = item.Weight * 1L<mebibyte>
-
    let DetermineResolution (capacity : int64<byte>) = 
       let resolutionTransform magnitudeTransform length = length |> WithByteMeasure |> magnitudeTransform |> WithoutMeasure
 
       let expandedCapacity = capacity + (capacity / 10L) //Extra wiggle room
 
       if expandedCapacity >= 1L<tebibyte> * bytesPerTebibyte then
-         resolutionTransform BytesToGibibytes
+         resolutionTransform BytesToGibibytes, Gibibytes
       elif expandedCapacity >= 1L<gibibyte> * bytesPerGibibyte then
-         resolutionTransform BytesToMebibytes
+         resolutionTransform BytesToMebibytes, Mebibytes
       elif expandedCapacity >= 1L<mebibyte> * bytesPerMebibyte then
-         resolutionTransform BytesToKibibytes
+         resolutionTransform BytesToKibibytes, Kibibytes
       else
-         fun length -> length
+         (fun length -> length), Bytes
 
    let DriveSpace rootPath = 
       let info = new DriveInfo(rootPath)
@@ -102,10 +102,21 @@ type KnapsackSolver(parent : IActor) =
       |> Seq.toList 
       |> List.map FileEntry
       
+      
    let Solve archivePath (files : FileEntry list) = 
+      let printArchiveStats totalToArchive driveCapacity resolution =
+         let resolutionString = match resolution with
+                                | Bytes -> "Bytes"
+                                | Kibibytes -> "Kibibytes"
+                                | Mebibytes -> "Mebibytes"
+                                | Gibibytes -> "Gibibytes"
+
+         PrintToConsole <| sprintf "Total amount to archive is: %i %s" (WithoutMeasure totalToArchive) resolutionString
+         PrintToConsole <| sprintf "Total destination drive capacity is: %i %s" (WithoutMeasure driveCapacity) resolutionString
+
       let capacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
 
-      let resolutionTransformation = MebibytesToKibibytes >> KibibytesToBytes >> DetermineResolution <| capacity
+      let resolutionTransformation, resolution = MebibytesToKibibytes >> KibibytesToBytes >> DetermineResolution <| capacity
 
       let filesAsIItems = 
          files 
@@ -113,12 +124,11 @@ type KnapsackSolver(parent : IActor) =
          |> List.sortBy (fun i -> i.Value)
          |> List.rev
 
-      let totalAmountToArchive = List.sumBy (fun item -> FileSize item) filesAsIItems
+      let totalAmountToArchive = List.sumBy (fun (item : IItem) -> item.Weight) filesAsIItems
 
-      PrintToConsole <| sprintf "Total amount to archive is: %A mebibytes" totalAmountToArchive
-      PrintToConsole <| sprintf "Total destination drive capaity is: %A mebibytes" capacity
+      printArchiveStats totalAmountToArchive capacity resolution
 
-      if totalAmountToArchive > GibibytesToMebibytes DPDriveCapacityCeiling then
+      if totalAmountToArchive > DPDriveCapacityCeiling then
          PrintToConsole "Total amount of files to archive is GREATER than 10 Gibibytes. Using greedy solution algorithm"
          SolveUsingGreedy archivePath filesAsIItems capacity
       else
