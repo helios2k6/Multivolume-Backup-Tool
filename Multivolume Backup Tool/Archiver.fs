@@ -139,11 +139,12 @@ type Archiver(parent : IActor) =
       |> List.map (fun item -> (fstOfThree item, new FileEntry(sndOfThree item)))
 
    let PrintBackedUpFileStatistics (backedUpFiles : FileEntry list) =
-      backedUpFiles
-      |> List.sumBy (fun entry -> entry.Size)
-      |> BytesToMebibytes
-      |> sprintf "Total Amount Archived: %A Mebibytes"
-      |> PrintToConsole
+      let amountBackedUp = 
+         backedUpFiles
+         |> List.sumBy (fun entry -> entry.Size)
+         |> WithoutMeasure
+
+      PrintToConsole <| String.Format("Total amount archived: {0:n0} bytes", amountBackedUp)
 
    let FormArchiveResponse (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) =
       let backedUpFiles = GetBackedUpFiles archiveResultSequence
