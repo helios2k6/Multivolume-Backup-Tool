@@ -91,10 +91,9 @@ type Archiver(parent : IActor) =
 
    let TryCopy fileA fileB =
       try
-      (*
          CreateIntermediateDirectoryStructure fileB
          File.Copy(fileA, fileB, true)
-         *)
+
          Success
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)

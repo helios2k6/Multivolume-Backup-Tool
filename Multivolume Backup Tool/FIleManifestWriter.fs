@@ -46,7 +46,7 @@
          let serializedContext = JsonConvert.SerializeObject(fileManifest, Formatting.Indented)
          let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
          PrintToConsole <| sprintf "Writing manifest file to: %s" manifestFilePath
-         (*File.WriteAllText(manifestFilePath, serializedContext)*)
+         File.WriteAllText(manifestFilePath, serializedContext)
          FileManifestWriterResponse.Success
       with
          | _ -> FileManifestWriterResponse.Failure

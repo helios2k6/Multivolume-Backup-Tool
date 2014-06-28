@@ -100,6 +100,9 @@ module Measure =
 
    let MebibytesOr1 (x : int64<mebibyte>) = if x = 0L<mebibyte> then 1L<mebibyte> else x
 
+module MathHelpers =
+   let Max (a : int64<'a>) (b : int64<'a>) = if a >= b then a else b
+
 ///<summary>Utility module</summary>
 module Utilities =
    let private LockObject = new Object()

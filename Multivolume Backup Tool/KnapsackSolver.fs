@@ -63,12 +63,13 @@ type KnapsackSolver(parent : IActor) =
          PrintToConsole <| String.Format("Total destination drive capacity is: {0:n0} bytes", driveCapacity)
       
    let Solve archivePath (files : FileEntry list) = 
-      let capacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
+      let modifiedDriveCapacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
+      let actualCapacity = MathHelpers.Max modifiedDriveCapacity 0L<byte>
       let totalAmountToArchive = List.sumBy (fun (item : FileEntry) -> item.Size) files
 
-      PrintArchiveStats totalAmountToArchive capacity
+      PrintArchiveStats totalAmountToArchive actualCapacity
 
-      SolveUsingGreedy files capacity
+      SolveUsingGreedy files actualCapacity
 
    (* Public Methods *)
    override this.Receive sender msg state =
