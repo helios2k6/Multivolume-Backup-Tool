@@ -92,7 +92,11 @@ module Measure =
 
    let KibibytesToBytes (x : int64<kibibyte>) = x * bytesPerKibibyte
 
-   let GibibytesToBytes (x : int64<gibibyte>) = GibibytesToMebibytes >> MebibytesToKibibytes >> KibibytesToBytes <| x
+   let GibibytesToKibibytes (x : int64<gibibyte>) = GibibytesToMebibytes >> MebibytesToKibibytes <| x
+
+   let GibibytesToBytes (x : int64<gibibyte>) = GibibytesToKibibytes >> KibibytesToBytes <| x
+
+   let MebibytesToBytes (x : int64<mebibyte>) = MebibytesToKibibytes >> KibibytesToBytes <| x
 
    let MebibytesOr1 (x : int64<mebibyte>) = if x = 0L<mebibyte> then 1L<mebibyte> else x
 
