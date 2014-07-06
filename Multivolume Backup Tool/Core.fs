@@ -49,9 +49,25 @@ module Measure =
    [<Measure>]
    type tebibyte
 
-   let toByte x = x * 1L<byte>
+   let WithByteMeasure x = x * 1L<byte>
+
+   let WithKibibyteMeasure x = x * 1L<kibibyte>
+
+   let WithMebibyteMeasure x = x * 1L<mebibyte>
+
+   let WithGibibyteMeasure x = x * 1L<gibibyte>
+
+   let WithTebibyteMeasure x = x * 1L<tebibyte>
+   
+   let WithoutMeasure (x : int64<_>) = int64(x)
 
    let bytesPerKibibyte = 1024L<byte/kibibyte>
+
+   let bytesPerMebibyte = 1024L<kibibyte/mebibyte> * bytesPerKibibyte
+
+   let bytesPerGibibyte = 1024L<mebibyte/gibibyte> * bytesPerMebibyte
+
+   let bytesPerTebibyte = 1024L<gibibyte/tebibyte> * bytesPerGibibyte
 
    let kibibytesPerMebibyte = 1024L<kibibyte/mebibyte>
 
@@ -59,54 +75,37 @@ module Measure =
 
    let gibibytesPerTebibyte = 1024L<gibibyte/tebibyte>
 
-   let bytesToKibibytes (x : int64<byte>) = x / bytesPerKibibyte
+   //Transformations
+   //Upward Transformations
+   let BytesToKibibytes (x : int64<byte>) = x / bytesPerKibibyte
 
-   let kibiBytesToMebibytes (x : int64<kibibyte>) = x / kibibytesPerMebibyte
+   let BytesToMebibytes (x : int64<byte>) = BytesToKibibytes x / kibibytesPerMebibyte
 
-   let mebibytesToGibibytes (x : int64<mebibyte>) = x / mebibytesPerGibibyte
+   let BytesToGibibytes (x : int64<byte>) = BytesToMebibytes x / mebibytesPerGibibyte
 
-   let gibibytesToTebibytes (x : int64<gibibyte>) = x / gibibytesPerTebibyte
+   let BytesToTebibytes (x : int64<byte>) = BytesToGibibytes x / gibibytesPerTebibyte
+   
+   //Downward Transformations
+   let GibibytesToMebibytes (x : int64<gibibyte>) = x * mebibytesPerGibibyte
+
+   let MebibytesToKibibytes (x : int64<mebibyte>) = x * kibibytesPerMebibyte
+
+   let KibibytesToBytes (x : int64<kibibyte>) = x * bytesPerKibibyte
+
+   let GibibytesToKibibytes (x : int64<gibibyte>) = GibibytesToMebibytes >> MebibytesToKibibytes <| x
+
+   let GibibytesToBytes (x : int64<gibibyte>) = GibibytesToKibibytes >> KibibytesToBytes <| x
+
+   let MebibytesToBytes (x : int64<mebibyte>) = MebibytesToKibibytes >> KibibytesToBytes <| x
+
+   let MebibytesOr1 (x : int64<mebibyte>) = if x = 0L<mebibyte> then 1L<mebibyte> else x
+
+module MathHelpers =
+   let Max (a : int64<'a>) (b : int64<'a>) = if a >= b then a else b
 
 ///<summary>Utility module</summary>
 module Utilities =
    let private LockObject = new Object()
-   let private BytesOr1 bytes = if bytes = 0L then 1L else bytes
-
-   ///<summary>Represents 1 Kibibyte</summary>
-   let kibibyte = 1024L
-
-   ///<summary>Represents 1 Mebibyte</summary>
-   let mebibyte = 1024L * kibibyte
-
-   ///<summary>Represents 1 Gibibyte</summary>
-   let gibibyte = 1024L * mebibyte
-
-   ///<summary>Represents 1 Tebibyte</summary>
-   let tebibyte = 1024L * gibibyte
-
-   ///<summary>Convenience active pattern for turning bytes into kibibytes
-   let (|KibiBytes|) (bytes : int64) =
-      match bytes with
-      | 0L -> 0L
-      | bytes -> bytes / kibibyte |> BytesOr1
-
-   ///<summary>Convenience active pattern for turning bytes into mebibytes</summary>
-   let (|MebiBytes|) (bytes : int64) = 
-      match bytes with
-      | 0L -> 0L
-      | bytes ->  bytes / mebibyte |> BytesOr1
-
-    ///<summary>Convenience active pattern for turning bytes into gibibytes</summary>
-   let (|GibiBytes|) (bytes : int64) =
-      match bytes with
-      | 0L -> 0L
-      | bytes -> bytes / gibibyte |> BytesOr1
-
-    ///<summary>Convenience active pattern for turning bytes into tebibytes</summary>
-   let (|TebiBytes|) (bytes : int64) =
-      match bytes with
-      | 0L -> 0L
-      | bytes -> bytes / tebibyte |> BytesOr1
 
    ///<summary>Prints the message to the console with the current time</summary>
    let PrintToConsole msg = lock LockObject (fun() -> String.Format("[{0}] - {1}", DateTime.Now, msg) |> Console.WriteLine )

@@ -24,8 +24,6 @@
 
 namespace MBT
 
-open Knapsack
-open Knapsack.Details
 open MBT
 open MBT.Core
 open MBT.Core.Measure
@@ -35,36 +33,24 @@ open MBT.Messages
 open System
 open System.IO
 
-///<summary>An IITem that represents a file</summary>
-type FileItemWrapper(item : FileEntry, resolution : int64 -> int64) =
-   (* Public Methods *)
-   member this.File with get() = item
-
-   interface IItem with
-      member this.Value with get() = item.Info.Length |> resolution
-      member this.Weight with get() = item.Info.Length |> resolution
-   end
-
 ///<summary>The actor that calculates the solution the knapsack problem</summary>
 type KnapsackSolver(parent : IActor) =
    inherit ActorBase<KnapsackMessage, UnitPlaceHolder>(parent)
 
    (* Private Fields *)
-   static let WiggleRoom = 50L * mebibyte
+   static let WiggleRoom = 50L<mebibyte> |> MebibytesToBytes
 
    (* Private Methods *)
-   let (|FileEntry|) (item : IItem) = (item :?> FileItemWrapper).File
-   let (|AsIItem|) item = item :> IItem
-   let (|FileSize|) (item : IItem) = item.Weight
+   let DriveSpace rootPath = 
+      let info = new DriveInfo(rootPath)
+      info.AvailableFreeSpace |> WithByteMeasure 
 
-   let SolveUsingGreedy archivePath (files : IItem list) (availableCapacity : int64) = 
-      let foldAction (state : Set<FileEntry> * int64) (item : IItem) =
+   let SolveUsingGreedy files (availableCapacity : int64<byte>) = 
+      let foldAction (state : Set<FileEntry> * int64<byte>) (item : FileEntry) =
          let selectedFiles = fst state
          let remainingCapacity = snd state
-         let size = item.Weight
-         let fileEntry = (|FileEntry|) item
-         if size <= remainingCapacity then
-            (selectedFiles.Add fileEntry, remainingCapacity - size)
+         if item.Size <= remainingCapacity then
+            (selectedFiles.Add item, remainingCapacity - item.Size)
          else
             state
 
@@ -72,33 +58,18 @@ type KnapsackSolver(parent : IActor) =
       |> fst
       |> Seq.toList
 
-   let SolveUsingDP archivePath (files : IItem list) (availableCapacity : int64) =
-      let solver = new ZeroOneDPKnapsackSolver()
-
-      solver.Solve(files, availableCapacity) 
-      |> Seq.toList 
-      |> List.map (|FileEntry|)
+   let PrintArchiveStats (totalToArchive : int64<byte>) (driveCapacity : int64<byte>) =
+         PrintToConsole <| String.Format("Total amount to archive is: {0:n0} bytes", totalToArchive)
+         PrintToConsole <| String.Format("Total destination drive capacity is: {0:n0} bytes", driveCapacity)
       
    let Solve archivePath (files : FileEntry list) = 
-      let filesAsIItems = 
-         files 
-         |> List.map (fun i -> new FileItemWrapper(i, (|MebiBytes|)) |> (|AsIItem|))
-         |> List.sortBy (fun i -> i.Value)
-         |> List.rev
+      let modifiedDriveCapacity = (Path.GetPathRoot archivePath |> DriveSpace) - WiggleRoom
+      let actualCapacity = MathHelpers.Max modifiedDriveCapacity 0L<byte>
+      let totalAmountToArchive = List.sumBy (fun (item : FileEntry) -> item.Size) files
 
-      let totalAmountToArchive = List.fold (fun runningSize item -> runningSize + (|FileSize|) item) 0L filesAsIItems
-      let rootPath = Path.GetPathRoot archivePath
-      let capacity = (new DriveInfo(rootPath)).AvailableFreeSpace - WiggleRoom |> (|MebiBytes|)
+      PrintArchiveStats totalAmountToArchive actualCapacity
 
-      PrintToConsole <| sprintf "Total amount to archive is: %i mebibytes" totalAmountToArchive
-      PrintToConsole <| sprintf "Total destination drive capaity is: %i mebibytes" capacity
-
-      if totalAmountToArchive > (|MebiBytes|) (10L * gibibyte) then
-         PrintToConsole "Total amount of files to archive is GREATER than 10 Gibibytes. Using greedy solution algorithm"
-         SolveUsingGreedy archivePath filesAsIItems capacity
-      else
-         PrintToConsole "Total amount of files to archive is LESS than 10 Gibibytes. Using DP solution"
-         SolveUsingDP archivePath filesAsIItems capacity
+      SolveUsingGreedy files actualCapacity
 
    (* Public Methods *)
    override this.Receive sender msg state =

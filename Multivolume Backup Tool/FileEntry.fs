@@ -40,28 +40,28 @@ type FileEntry(filePath : String) =
    member this.Path with get() = this.Info.FullName
 
    ///<summary>Get the size of this FileEntry in bytes</summary>
-   member this.Size with get() = this.Info.Length |> toByte
+   member this.Size with get() = this.Info.Length |> WithByteMeasure
 
    interface IComparable<FileEntry> with
-      member this.CompareTo other = filePath.CompareTo other.Path
+      member this.CompareTo other = this.Path.CompareTo other.Path
    end
 
    interface IComparable with
       member this.CompareTo other = 
          match other with
-         | :? FileEntry as fileEntry -> filePath.CompareTo(fileEntry.Path)
+         | :? FileEntry as fileEntry -> this.Path.CompareTo(fileEntry.Path)
          | _ -> -1
    end
 
    interface IEquatable<FileEntry> with
-      member this.Equals other = filePath.Equals(other.Path)
+      member this.Equals other = this.Path.Equals(other.Path)
    end
 
    override this.Equals other =
       match other with
-      | :? FileEntry as entry -> filePath.Equals(entry.Path)
+      | :? FileEntry as entry -> this.Path.Equals(entry.Path)
       | _ -> false
 
-   override this.GetHashCode() = filePath.GetHashCode()
+   override this.GetHashCode() = this.Path.GetHashCode()
 
    override this.ToString() = this.Path

@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Core.Measure
 open MBT.Core.Utilities
 open MBT.Core.Tuple
 open MBT.Operations
@@ -90,10 +91,9 @@ type Archiver(parent : IActor) =
 
    let TryCopy fileA fileB =
       try
-      (*
          CreateIntermediateDirectoryStructure fileB
          File.Copy(fileA, fileB, true)
-         *)
+
          Success
       with
          | :? UnauthorizedAccessException as ex -> UnknownError(ex)
@@ -138,12 +138,12 @@ type Archiver(parent : IActor) =
       |> List.map (fun item -> (fstOfThree item, new FileEntry(sndOfThree item)))
 
    let PrintBackedUpFileStatistics (backedUpFiles : FileEntry list) =
-      let foldAction state (item : FileEntry) = state + item.Info.Length |> (|MebiBytes|)
+      let amountBackedUp = 
+         backedUpFiles
+         |> List.sumBy (fun entry -> entry.Size)
+         |> WithoutMeasure
 
-      backedUpFiles
-      |> List.fold foldAction 0L
-      |> sprintf "Total Amount Archived: %A Mebibytes"
-      |> PrintToConsole
+      PrintToConsole <| String.Format("Total amount archived: {0:n0} bytes", amountBackedUp)
 
    let FormArchiveResponse (archiveResultSequence : (FileEntry * String * FileArchiveResult) list) =
       let backedUpFiles = GetBackedUpFiles archiveResultSequence
