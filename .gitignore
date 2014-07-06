@@ -3,3 +3,6 @@ bin*
 obj*
 *.suo
 packages/*
+.DS_STORE
+.DS_Store
+*.userprefs
