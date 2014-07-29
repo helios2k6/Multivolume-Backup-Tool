@@ -137,21 +137,21 @@ module Seq =
       else
          Seq.skip 1 seq
 
-   ///<summary>Gets the head and tail of a sequence</summary>
-   let internal (|HeadAndTail|) aSeq = (Seq.head aSeq, Tail aSeq)
-
    ///<summary>Unwraps a sequence of optional values into their raw values</summary>
-   let internal UnwrapOptionalSeq inSeq = 
-      let rec generateSeqOnSomeOnly state remainingSeq =
-         if Seq.isEmpty remainingSeq then
-            state
-         else
-            let head, tail = (|HeadAndTail|) remainingSeq
-            match head with
-            | Some(a) -> generateSeqOnSomeOnly (seq { yield! state; yield a }) tail
-            | None -> generateSeqOnSomeOnly state tail
+   let internal UnwrapOptionalSeq inSeq =
+      let chooser input = 
+         match input with 
+         | Some(_) -> true
+         | _ -> false
 
-      generateSeqOnSomeOnly Seq.empty inSeq
+      let mapper input =
+         match input with
+         | Some(x) -> x
+         | _ -> failwith "Impossible"
+
+      inSeq
+      |> Seq.filter chooser
+      |> Seq.map mapper
 
 module Tuple =
    ///<summary>Takes the first item of a 3-tuple</summary>

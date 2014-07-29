@@ -40,6 +40,9 @@ type private FileDecision =
    | KeepArchiveFile
    | AddOrReplaceArchiveFile
 
+/// <summary>
+/// The archive resolving actor
+/// </summary>
 type ArchiveResolver(parent : IActor) as this =
    inherit ActorBase<ArchiveResolverMessage, UnitPlaceHolder>(parent)
 
@@ -64,17 +67,23 @@ type ArchiveResolver(parent : IActor) as this =
 
    let TranslateRawManifest (fileManifest : Map<String, String>) =
       let mapAction tuple = 
-         let sourceFilePath = fst tuple
-         let destFilePath = snd tuple
+         async {
+            let sourceFilePath = fst tuple
+            let destFilePath = snd tuple
          
-         if File.Exists sourceFilePath && File.Exists destFilePath then
-            Some (new FileEntry(sourceFilePath), new FileEntry(destFilePath))
-         else
-            None
+            if File.Exists sourceFilePath && File.Exists destFilePath then
+               PrintToConsole <| sprintf "Found existing file mapping %A => %A" sourceFilePath destFilePath
+               return Some (new FileEntry(sourceFilePath), new FileEntry(destFilePath))
+            else
+               PrintToConsole <| sprintf "Did not find the file mapping %A => %A" sourceFilePath destFilePath
+               return None
+         }
 
       fileManifest
       |> Seq.map (|KeyValue|)
       |> Seq.map mapAction
+      |> Async.Parallel
+      |> Async.RunSynchronously
       |> Seq.UnwrapOptionalSeq
       |> Map.ofSeq
 
@@ -83,10 +92,14 @@ type ArchiveResolver(parent : IActor) as this =
       match item with
       | Some(oldArchivedFile) -> 
          if fileToBackUp.Info.LastWriteTimeUtc > oldArchivedFile.Info.LastWriteTimeUtc then
+            PrintToConsole <| sprintf "Adding or replacing %A" oldArchivedFile.Path
             AddOrReplaceArchiveFile
          else
+            PrintToConsole <| sprintf "Retaining archive file %A" oldArchivedFile.Path
             KeepArchiveFile
-      | None -> AddOrReplaceArchiveFile
+      | None -> 
+         PrintToConsole <| sprintf "Could not find file %A in the existing archive. Adding" fileToBackUp.Path
+         AddOrReplaceArchiveFile
    
    let ProcessExistingArchive oldFileManifest filesToBackup =
       PrintToConsole "Processing existing archive"

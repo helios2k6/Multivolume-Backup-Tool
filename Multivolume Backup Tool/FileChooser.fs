@@ -28,6 +28,7 @@ open MBT.Core
 open MBT.Core.Utilities
 open MBT.Messages
 open MBT.Operations
+open Microsoft.FSharp.Collections
 open System
 open System.IO
 open System.Text.RegularExpressions
@@ -57,7 +58,7 @@ type FileChooser(parent : IActor) =
       else
          true
 
-   member private this.TryChooseFiles (config : ApplicationConfiguration) =
+   let TryChooseFiles (config : ApplicationConfiguration) =
       try
          query {
             for folder in config.Folders do
@@ -68,16 +69,16 @@ type FileChooser(parent : IActor) =
          |> Seq.toList
          |> Some
       with 
-      | ex -> 
+      | _ -> 
          PrintToConsole <| sprintf "Unable to open folders %A" config.Folders
          None
 
    (* Public Methods *)
-   override this.Receive sender msg state =
+   override this.Receive sender msg _ =
       match msg with
       | ChooseFiles(config) ->
          PrintToConsole "Choosing files"
-         let chosenFilesOption = this.TryChooseFiles config 
+         let chosenFilesOption = TryChooseFiles config 
          match chosenFilesOption with
          | Some(folders) -> sender +! Message.Compose this (FileChooserResponse.Files(folders))
          | None -> sender +! Message.Compose this FileChooserResponse.Failure
