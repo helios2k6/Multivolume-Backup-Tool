@@ -179,7 +179,7 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
       else Some { state with ChildrenStatus = updatedStatusBoard }
 
    (* Public Methods *)
-   override this.Receive sender msg state = 
+   override this.Receive _ _ state = 
       _fileChooser +! Message.Compose this (ChooseFiles(state.Configuration))
       Some state
 
@@ -204,10 +204,11 @@ type BackupManager(parent : IActor, initialConfig : ApplicationConfiguration) as
          | :? ArchiveResponse as response -> HandleArchiveResponse response initialState
          | :? BackupContinuationResponse as response -> HandleBackupContinuationResponse response initialState
          | :? VolumeSwitcherResponse as response -> HandleVolumeSwitcherResponse response initialState
+         | :? FileManifestWriterResponse as response -> HandleFileManifestWriterResponse response initialState
          | _ -> Some initialState
       | ShuttingDown -> 
          match msg with
-         | :? ShutdownResponse as shutdownResponse -> HandleShutdownResponse sender initialState
+         | :? ShutdownResponse -> HandleShutdownResponse sender initialState
          | _ -> Some initialState
       | _ -> None
 
