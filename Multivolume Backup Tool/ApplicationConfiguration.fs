@@ -45,7 +45,8 @@ type ApplicationConfiguration =
 type ApplicationConfigurationFactory =
 
    ///<summary>Creates an ApplicationConfiguration record with a CommandLineArgument object</summary>
-   static member public CreateConfiguration (commandLineArgs : CommandLineArguments) = {
+   static member public CreateConfiguration (commandLineArgs : CommandLineArguments) = 
+      {
          ArchiveFilePath = commandLineArgs.ArchiveFilePath; 
          Folders = commandLineArgs.Folders; 
          Blacklist = commandLineArgs.Blacklist; 

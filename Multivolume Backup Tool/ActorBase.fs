@@ -82,7 +82,7 @@ type ActorBase<'msg, 'state>(parent : IActor) as this =
 
    ///<summary>Handles an unknown message</summary>
    abstract member UnknownMessageHandler : IActor -> obj -> 'state -> 'state Option
-   default this.UnknownMessageHandler sender msg initialState = Some initialState
+   default this.UnknownMessageHandler _ _ initialState = Some initialState
 
    interface IActor with
       member this.Post msg = _mailbox.Value.Post msg

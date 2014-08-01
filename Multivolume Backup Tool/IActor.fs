@@ -32,7 +32,7 @@ type IActor =
 ///<summary>the "null actor"</summary>
 type NoActorSource private () =
    interface IActor with
-      member this.Post msg = ()
+      member this.Post _ = ()
    end
 
    static member public Instance = new NoActorSource()

@@ -117,25 +117,11 @@ module Utilities =
 module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
 
-module Predicates =
-   ///<summary>Checks an optional to see if it's Some value</summary>
-   let internal IsSome opt = 
-      match opt with
-      | Some(_) -> true
-      | None -> false
-
 module Seq =
    ///<summary>Applies a predicate to the sequence to see if every item fulfills the predicate. Empty sequences return true!</summary>
    let internal All predicate seq = 
       let foldFunc status item = if status && predicate(item) then true else false
       seq |> Seq.fold foldFunc true
-
-   ///<summary>Gets the tail of the sequence, or the empty sequence if the sequence is empty</summary>
-   let internal Tail seq = 
-      if Seq.isEmpty seq then
-         Seq.empty
-      else
-         Seq.skip 1 seq
 
    ///<summary>Unwraps a sequence of optional values into their raw values</summary>
    let internal UnwrapOptionalSeq inSeq =

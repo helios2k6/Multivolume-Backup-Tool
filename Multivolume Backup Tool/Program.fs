@@ -30,13 +30,9 @@ open CommandLine.Text
 open Microsoft.FSharp.Control
 open System.IO
 
-type private WaitAgentState = 
-   | Waiting
-   | Done
+type private WaitAgentState = Waiting | Done
 
-type private Message =
-   | Callback
-   | Wait of AsyncReplyChannel<unit>
+type private Message = Callback | Wait of AsyncReplyChannel<unit>
 
 let private AgentLoop (inbox : MailboxProcessor<Message>)=
    let rec loop (state : WaitAgentState) =

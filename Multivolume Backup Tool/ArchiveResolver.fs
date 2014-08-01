@@ -29,16 +29,13 @@ open MBT.Core
 open MBT.Operations
 open MBT.Messages
 open MBT.Core.Utilities
-open MBT.Core.Predicates
 open MBT.Core.Seq
 open MBT.Core.Monads
 open System
 open System.IO
 open System.Collections.Generic
 
-type private FileDecision =
-   | KeepArchiveFile
-   | AddOrReplaceArchiveFile
+type private FileDecision = KeepArchiveFile | AddOrReplaceArchiveFile
 
 /// <summary>
 /// The archive resolving actor
@@ -117,7 +114,7 @@ type ArchiveResolver(parent : IActor) as this =
       sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; }
 
    (* Public Methods *)
-   override this.Receive sender msg state =
+   override this.Receive sender msg _ =
       let translatedManifestFile = maybe {
          let! manifest = TryReadManifestFile msg.ArchiveFilePath
          return TranslateRawManifest manifest 
