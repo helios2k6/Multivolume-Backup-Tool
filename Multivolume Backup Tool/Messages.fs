@@ -44,10 +44,10 @@ type FileChooserMessage = ChooseFiles of ApplicationConfiguration
 type FileChooserResponse = Files of FileEntry list | Failure
 
 ///<summary>The message you can send to the Archive Resolver</summary>
-type ArchiveResolverMessage = { ArchiveFilePath : String; Files : FileEntry list }
+type ArchiveResolverMessage = ResolveArchive of string
 
 ///<summary>The response you will get from the Archive Resolver</summary>
-type ArchiveResolverResponse = { ArchiveFilePath : String; FileManifest : FileManifest; Files : FileEntry list } 
+type ArchiveResolverResponse = ArchiveFileManifest of FileManifest 
 
 ///<summary>The messages you can send to the Knapsack Solver and the message you will get back as a response</summary>
 type KnapsackMessage = Calculate of String * FileEntry list

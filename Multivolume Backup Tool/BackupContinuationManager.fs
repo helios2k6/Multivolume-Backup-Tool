@@ -36,10 +36,6 @@ type private Response =
    | Retry
    | Abort
 
-type private SwitchVolume =
-   | Yes
-   | No
-
 type private ErrorHandleStrategy =
    | NoError
    | Strategy of Response

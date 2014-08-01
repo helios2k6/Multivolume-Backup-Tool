@@ -29,13 +29,10 @@ open MBT.Core
 open MBT.Operations
 open MBT.Messages
 open MBT.Core.Utilities
-open MBT.Core.Seq
 open MBT.Core.Monads
 open System
 open System.IO
 open System.Collections.Generic
-
-type private FileDecision = KeepArchiveFile | AddOrReplaceArchiveFile
 
 /// <summary>
 /// The archive resolving actor
@@ -55,6 +52,7 @@ type ArchiveResolver(parent : IActor) as this =
          | ex -> 
             PrintToConsole <| sprintf "Could not deserialize file manifest. Reason: %A" ex
             None
+
    let TryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
       if File.Exists(pathOfManifestFile) then
@@ -84,48 +82,26 @@ type ArchiveResolver(parent : IActor) as this =
       |> Seq.UnwrapOptionalSeq
       |> Map.ofSeq
 
-   let ProcessFileFromExistingArchive (oldFileManifest : FileManifest) (fileToBackUp : FileEntry) =
-      let item = oldFileManifest.TryFind fileToBackUp
-      match item with
-      | Some(oldArchivedFile) -> 
-         if fileToBackUp.Info.LastWriteTimeUtc > oldArchivedFile.Info.LastWriteTimeUtc then
-            PrintToConsole <| sprintf "Adding or replacing %A" oldArchivedFile.Path
-            AddOrReplaceArchiveFile
-         else
-            PrintToConsole <| sprintf "Retaining archive file %A" oldArchivedFile.Path
-            KeepArchiveFile
-      | None -> 
-         PrintToConsole <| sprintf "Could not find file %A in the existing archive. Adding" fileToBackUp.Path
-         AddOrReplaceArchiveFile
+   let SendEmptyResponse (sender : IActor) =
+      sender +! Message.Compose this (ArchiveFileManifest(Map.empty))
    
-   let ProcessExistingArchive oldFileManifest filesToBackup =
-      PrintToConsole "Processing existing archive"
-      let processedFileTuples = List.map (fun file -> (file, ProcessFileFromExistingArchive oldFileManifest file)) filesToBackup
-      let filesToAddOrReplace = processedFileTuples |> List.filter (fun item -> snd item = AddOrReplaceArchiveFile) |> List.map (fun item -> fst item) |> Set.ofList
-      let filesToKeep = oldFileManifest |> Seq.map (fun item -> item.Key) |> Seq.filter (fun item -> not <| filesToAddOrReplace.Contains item) |> Seq.toList
-      let newFileManifest = filesToKeep |> Seq.map (fun item -> (item, oldFileManifest.Item item)) |> Map.ofSeq
-
-      (newFileManifest, filesToAddOrReplace |> Set.toList)
-
-   let SendEmptyResponse (sender : IActor) archiveFilePath files =
-      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = Map.empty; Files = files; }
-   
-   let SendUpdatedManifest (sender : IActor) archiveFilePath manifest files =
-      sender +! Message.Compose this { ArchiveFilePath = archiveFilePath; FileManifest = manifest; Files = files; }
+   let SendUpdatedManifest (sender : IActor) manifest =
+      sender +! Message.Compose this (ArchiveFileManifest(manifest))
 
    (* Public Methods *)
    override this.Receive sender msg _ =
-      let translatedManifestFile = maybe {
-         let! manifest = TryReadManifestFile msg.ArchiveFilePath
-         return TranslateRawManifest manifest 
-      }
+      match msg with 
+      | ResolveArchive(archivePath) -> 
 
-      match translatedManifestFile with
-      | Some(manifestFile) -> 
-         let newFileManifestAndProcessedFiles = ProcessExistingArchive manifestFile msg.Files
-         SendUpdatedManifest sender msg.ArchiveFilePath (fst newFileManifestAndProcessedFiles) (snd newFileManifestAndProcessedFiles)
-      | None -> SendEmptyResponse sender msg.ArchiveFilePath msg.Files
+         let translatedManifestFile = maybe {
+            let! manifest = TryReadManifestFile archivePath
+            return TranslateRawManifest manifest 
+         }
 
-      Some Hold
+         match translatedManifestFile with
+         | Some(manifestFile) -> SendUpdatedManifest sender manifestFile
+         | None -> SendEmptyResponse sender
+
+         Some Hold
 
    override this.PreStart() = Hold
