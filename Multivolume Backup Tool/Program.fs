@@ -66,15 +66,6 @@ let main argv =
    else
       PrintToConsole "Beginning backup process"
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
-      let hypervisor = new Hypervisor(appConfig)
-      
-      let waitAgent = MailboxProcessor.Start AgentLoop
-      hypervisor.Begin()
-      hypervisor.Wait (fun () -> waitAgent.Post Callback)
-
-      waitAgent.PostAndReply (fun channel -> Wait(channel))
-
-      hypervisor.Shutdown()
       PrintToConsole "Finished backup process"
       
    0 // return an integer exit code

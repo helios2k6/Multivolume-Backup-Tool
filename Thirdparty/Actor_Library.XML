@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>ActorLibrary</name></assembly>
+<members>
+<member name="M:Actors.IActor`1.Post(`0)">
+ <summary>
+ Post a message to an actor
+ </summary>
+</member>
+<member name="T:Actors.IActor`1">
+ <summary>
+ Represents an actor object
+ </summary>
+</member>
+<member name="P:Actors.NullActor.Instance">
+ <summary>
+ The one and only instance of the Null Actor
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="T:Actors.NullActor">
+ <summary>
+ The Null Actor. It can accept any message, but will never return a message
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.StateActor`2.ProcessShutdown(`1,`0)">
+ <summary>
+ Protected call. Process any shutdown tasks prior to a full shutdown
+ </summary>
+</member>
+<member name="M:Actors.StateActor`2.ProcessMessage(`1,`0)">
+ <summary>
+ Protected call. Process a message, given the state and the message
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.StateActor`2.PreShutdown(`1,`0)">
+ <summary>
+ Protected call. Perform any pre-shutdown work given the state and message
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.StateActor`2.PostShutdown(`1,`0)">
+ <summary>
+ Protected call. Perform any post-shutdown work given the state and message
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.StateActor`2.IsShutdownMessage(`0)">
+ <summary>
+ Protected call. Determines whether or not a message passed is instructing
+ this actor to shutdown
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="T:Actors.Stateless">
+ <summary>
+ A placeholder type for the Stateless actor
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.StatelessActor`1.ProcessStatelessMessage(`0)">
+ <summary>
+ Protected call. Process the message
+ </summary>
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="">
+
+</member>
+<member name="M:Actors.ActorOperations.op_PlusBang``1(Actors.IActor{``0},``0)">
+ <summary>
+ Convenience operator for posting messages to an IActor
+ </summary>
+ <param name="actor">The IActor to send the message to</param>
+ <param name="msg">The message</param>
+</member>
+<member name="T:Actors.ActorOperations">
+
+</member>
+<member name="T:AssemblyInfo.DummyAssemblyAttributeHolder">
+
+</member>
+<member name="T:AssemblyInfo">
+
+</member>
+</members>
+</doc>
