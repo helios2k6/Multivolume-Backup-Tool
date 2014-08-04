@@ -39,3 +39,10 @@ type internal ConsoleActor private () =
    member this.WriteLine msg = (this :> IActor<Message>).Post <| ConsoleMessage(msg)
 
    static member public Instance = new ConsoleActor()
+
+module Console =
+   /// <summary>
+   /// Convenience method for printing to the screen via the Console actor
+   /// </summary>
+   /// <param name="message">The message to print</param>
+   let puts message = ConsoleActor.Instance.WriteLine message

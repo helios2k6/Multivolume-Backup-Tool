@@ -26,6 +26,7 @@ namespace MBT
 
 open Actors
 open MBT.Core
+open MBT.Console
 open Newtonsoft.Json
 open System.Collections.Generic
 open System.IO
@@ -36,14 +37,14 @@ type internal ManifestProcessor() =
    (* Private methods *)
    let tryDeserializeManifestFile fileContents =
       try
-         ConsoleActor.Instance.WriteLine "Deserializing file manifest"
+         puts "Deserializing file manifest"
          JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContents)
          |> Seq.map (|KeyValue|)
          |> Map.ofSeq
          |> Some
       with
          | ex -> 
-            ConsoleActor.Instance.WriteLine <| sprintf "Could not deserialize file manifest. Reason: %A" ex
+            puts <| sprintf "Could not deserialize file manifest. Reason: %A" ex
             None
 
    let tryReadManifestFile archiveFilePath =
@@ -53,19 +54,15 @@ type internal ManifestProcessor() =
       else
          None
 
-   let processActorMessage (msg : ActorMessage<string>) =
+   let processActorMessage msg =
       let archiveFilePath = msg.Payload
-      let sender = msg.Sender
       let manifestFileOption = tryReadManifestFile archiveFilePath
       
-      match manifestFileOption with
-      | Some(fileManifest) -> 
-      | None -> 
-
-      ()
+      match msg.Callback with
+      | Some(callback) -> ManifestProcessorResponse(manifestFileOption) |> callback
+      | _ -> failwith "Unable to callback with response"
 
    override this.ProcessStatelessMessage msg =
       match msg with
       | ManifestProcessorMessage(actorMessage) -> processActorMessage actorMessage
       | _ -> failwith "Unknown message"
-      ()

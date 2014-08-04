@@ -24,7 +24,8 @@
 
 
 open MBT
-open MBT.Core.Utilities
+open MBT.Core
+open MBT.Console
 open CommandLine
 open CommandLine.Text
 open Microsoft.FSharp.Control
@@ -58,14 +59,14 @@ let private AgentLoop (inbox : MailboxProcessor<Message>)=
 
 [<EntryPoint>]
 let main argv = 
-   PrintToConsole "Starting Multivolume Backup Tool"
+   puts "Starting Multivolume Backup Tool"
    let parsedArgs = ArgumentParser.ParseArguments argv
 
    if parsedArgs.State <> null && parsedArgs.State.Errors.Count > 0 then
       ArgumentParser.PrintHelp parsedArgs
    else
-      PrintToConsole "Beginning backup process"
+      puts "Beginning backup process"
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
-      PrintToConsole "Finished backup process"
+      puts "Finished backup process"
       
    0 // return an integer exit code

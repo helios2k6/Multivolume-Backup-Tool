@@ -29,4 +29,4 @@ open Actors
 /// <summary>
 /// Defines what a message is
 /// </summary>
-type ActorMessage<'a, 'b> = { Sender : IActor<'a>; Payload : 'a; Callback : 'b -> unit }
+type ActorMessageAbstract<'a, 'b> = { Payload : 'a; Callback : ('b -> unit) option }

@@ -24,6 +24,11 @@
 
 namespace MBT
 
+type internal ResponseMessage =
+   | ManifestProcessorResponse of Map<string, string> option
+
+type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
+
 /// <summary>
 /// The types of messages that can be sent to the actors of this backup system
 /// </summary>
