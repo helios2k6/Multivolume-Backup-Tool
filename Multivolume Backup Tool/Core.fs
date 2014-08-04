@@ -29,9 +29,6 @@ open System
 open System.Collections.Generic
 open System.IO
 
-///<summary>A placeholder type for the "Unit" type for generic parameters</summary>
-type UnitPlaceHolder = Hold
-
 ///<summary> Units of measure</summary>
 module Measure =
    [<Measure>]
@@ -100,57 +97,6 @@ module Measure =
 
    let MebibytesOr1 (x : int64<mebibyte>) = if x = 0L<mebibyte> then 1L<mebibyte> else x
 
-module MathHelpers =
-   let Max (a : int64<'a>) (b : int64<'a>) = if a >= b then a else b
-
-///<summary>Utility module</summary>
-module Utilities =
-   let private LockObject = new Object()
-
-   ///<summary>Prints the message to the console with the current time</summary>
-   let PrintToConsole msg = lock LockObject (fun() -> String.Format("[{0}] - {1}", DateTime.Now, msg) |> Console.WriteLine )
-
-   ///<summary>Prints a newline to the console</summary>
-   let PrintNewLineToConsole() = lock LockObject (fun() -> printfn "")
-         
 ///<summary>A module with constants defined for the program</summary>
 module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
-
-module Seq =
-   ///<summary>Applies a predicate to the sequence to see if every item fulfills the predicate. Empty sequences return true!</summary>
-   let internal All predicate seq = 
-      let foldFunc status item = if status && predicate(item) then true else false
-      seq |> Seq.fold foldFunc true
-
-   ///<summary>Unwraps a sequence of optional values into their raw values</summary>
-   let internal UnwrapOptionalSeq inSeq =
-      let chooser input = 
-         match input with 
-         | Some(_) -> true
-         | _ -> false
-
-      let mapper input =
-         match input with
-         | Some(x) -> x
-         | _ -> failwith "Impossible"
-
-      inSeq
-      |> Seq.filter chooser
-      |> Seq.map mapper
-
-module Tuple =
-   ///<summary>Takes the first item of a 3-tuple</summary>
-   let fstOfThree tuple = 
-      match tuple with 
-      (a, _, _) -> a
-
-   let sndOfThree tuple =
-      match tuple with
-      (_, b, _) -> b
-
-   ///<summary>Takes the third item of a 2-tuple</summary>
-   let thrdOfThree tuple =
-      match tuple with
-      (_, _, c) -> c
-
