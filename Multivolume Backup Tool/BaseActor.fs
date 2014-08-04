@@ -27,6 +27,11 @@ namespace MBT
 open Actors
 
 module private Impl =
+   /// <summary>
+   /// Private call. Used by base class actors to determine 
+   /// whether a message is the shutdown message
+   /// </summary>
+   /// <param name="msg"></param>
    let isShutdownMessage msg = 
       match msg with
       | Shutdown -> true
@@ -34,12 +39,18 @@ module private Impl =
 
 open Impl
 
+/// <summary>
+/// The base class for any state machine actors in this actor system
+/// </summary>
 [<AbstractClass>]
 type internal BaseStateActor<'state>(initialState : 'state) =
    inherit StateActor<Message, 'state>(initialState)
 
    override this.IsShutdownMessage msg = isShutdownMessage msg
 
+/// <summary>
+/// The base class for any stateless actors in this actor system
+/// </summary>
 [<AbstractClass>]
 type internal BaseStatelessActor() =
    inherit StatelessActor<Message>()

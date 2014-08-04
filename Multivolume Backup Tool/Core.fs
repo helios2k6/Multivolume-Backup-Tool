@@ -99,4 +99,52 @@ module Measure =
 
 ///<summary>A module with constants defined for the program</summary>
 module Constants =
-   let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"   
+   let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"
+
+module Math =
+   /// <summary>
+   /// Calculates the maximum between two unit integers
+   /// </summary>
+   /// <param name="a">The first number</param>
+   /// <param name="b">The second number</param>
+   let internal max (a : int64<'a>) (b : int64<'a>) = if a >= b then a else b
+
+module IO =
+   /// <summary>
+   /// Represents a file
+   /// </summary>
+   type FileEntry(filePath : string) =
+      let fileInfo = lazy new FileInfo(filePath)
+
+      ///<summary>Get the FileInfo object associated with this FileEntry</summary>
+      member this.Info with get() = fileInfo.Value
+
+      ///<summary>Get the path passed into this FileEntry</summary>
+      member this.Path with get() = this.Info.FullName
+
+      ///<summary>Get the size of this FileEntry in bytes</summary>
+      member this.Size with get() = this.Info.Length |> Measure.WithByteMeasure
+
+      interface IComparable<FileEntry> with
+         member this.CompareTo other = this.Path.CompareTo other.Path
+      end
+
+      interface IComparable with
+         member this.CompareTo other = 
+            match other with
+            | :? FileEntry as fileEntry -> this.Path.CompareTo(fileEntry.Path)
+            | _ -> -1
+      end
+
+      interface IEquatable<FileEntry> with
+         member this.Equals other = this.Path.Equals(other.Path)
+      end
+
+      override this.Equals other =
+         match other with
+         | :? FileEntry as entry -> this.Path.Equals(entry.Path)
+         | _ -> false
+
+      override this.GetHashCode() = this.Path.GetHashCode()
+
+      override this.ToString() = this.Path

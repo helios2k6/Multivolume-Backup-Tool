@@ -24,9 +24,19 @@
 
 namespace MBT
 
+open MBT.Core.IO
+
+/// <summary>
+/// Response messages that can be sent back as a callback parameter
+/// </summary>
 type internal ResponseMessage =
    | ManifestProcessorResponse of Map<string, string> option
+   | SolverResponse of seq<FileEntry>
 
+/// <summary>
+/// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
+/// reduce typing
+/// </summary>
 type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
 
 /// <summary>
@@ -35,6 +45,7 @@ type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
 type internal Message =
    | Shutdown
    | BackupMessage
+   | SolverMessage of ActorMessage<string * seq<FileEntry>>
    | ManifestProcessorMessage of ActorMessage<string>
    | ConsoleMessage of string
 

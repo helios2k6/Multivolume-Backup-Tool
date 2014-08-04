@@ -25,45 +25,44 @@
 namespace MBT
 
 open Actors
-open MBT.Core
-open MBT.Console
-open Newtonsoft.Json
-open System.Collections.Generic
+open MBT.Core.Math
+open MBT.Core.Measure
+open MBT.Core.IO
 open System.IO
 
-type internal ManifestProcessor() =
+/// <summary>
+/// Determines which files will fit on the archive
+/// </summary>
+type internal SpaceSolver() = 
    inherit BaseStatelessActor()
-
+   (* Private Fields *)
+   static let WiggleRoom = 50L<mebibyte>
+   
    (* Private methods *)
-   let tryDeserializeManifestFile fileContents =
-      try
-         puts "Deserializing file manifest"
-         JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContents)
-         |> Seq.map (|KeyValue|)
-         |> Map.ofSeq
-         |> Some
-      with
-         | ex -> 
-            puts <| sprintf "Could not deserialize file manifest. Reason: %A" ex
-            None
+   let driveSpace path = (new DriveInfo(path)).AvailableFreeSpace |> WithByteMeasure
 
-   let tryReadManifestFile archiveFilePath =
-      let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
-      if File.Exists(pathOfManifestFile) then
-         File.ReadAllText(pathOfManifestFile) |> tryDeserializeManifestFile
-      else
-         None
+   let minusWiggleRoom capacity = max (capacity - (MebibytesToBytes WiggleRoom)) 0L<byte>
 
-   let processActorMessage msg =
-      let archiveFilePath = msg.Payload
-      let manifestFileOption = tryReadManifestFile archiveFilePath
-      
-      match msg.Callback with
-      | Some(callback) -> ManifestProcessorResponse(manifestFileOption) |> callback
-      | _ -> failwith "Unable to callback with response"
+   let solveUsingGreedy files (capacity : int64<byte>) =
+      let foldAction (state : Set<FileEntry> * int64<byte>) (item : FileEntry) =
+         let selectedFiles = fst state
+         let remainingCapacity = snd state
+         if item.Size <= remainingCapacity then
+            (selectedFiles.Add item, remainingCapacity - item.Size)
+         else
+            state
 
-   (* Public methods *)
+      Seq.fold foldAction (Set.empty, capacity) files
+      |> fst
+
    override this.ProcessStatelessMessage msg =
       match msg with
-      | ManifestProcessorMessage(actorMessage) -> processActorMessage actorMessage
+      | SolverMessage(actorMessage) ->
+         match actorMessage.Callback with
+         | Some(callback) -> 
+            let archiveRootPath = fst actorMessage.Payload
+            let files = snd actorMessage.Payload
+            let greedyResult = driveSpace archiveRootPath |> minusWiggleRoom |> solveUsingGreedy files
+            SolverResponse(greedyResult) |> callback
+         | None -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"

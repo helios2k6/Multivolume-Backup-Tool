@@ -71,6 +71,7 @@
     <Compile Include="ManifestProcessor.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
+    <Compile Include="SpaceSolver.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
