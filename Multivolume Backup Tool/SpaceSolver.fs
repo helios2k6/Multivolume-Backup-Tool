@@ -52,8 +52,7 @@ type internal SpaceSolver() =
          else
             state
 
-      Seq.fold foldAction (Set.empty, capacity) files
-      |> fst
+      Seq.fold foldAction (Set.empty, capacity) files |> fst
 
    override this.ProcessStatelessMessage msg =
       match msg with

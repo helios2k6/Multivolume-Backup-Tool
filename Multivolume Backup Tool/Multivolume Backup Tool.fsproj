@@ -68,10 +68,11 @@
     <Compile Include="Messages.fs" />
     <Compile Include="BaseActor.fs" />
     <Compile Include="ConsoleActor.fs" />
+    <Compile Include="FileChooser.fs" />
+    <Compile Include="SpaceSolver.fs" />
     <Compile Include="ManifestProcessor.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
-    <Compile Include="SpaceSolver.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>

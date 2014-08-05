@@ -24,21 +24,19 @@
 
 namespace MBT
 
-open System
-
 ///<summary>
 ///The application configuration according to the command line 
 ///</summary>
 type ApplicationConfiguration = 
    { 
       ///<summary>The archive file path</summary>
-      ArchiveFilePath : String; 
+      ArchiveFilePath : string; 
       ///<summary>The folders to archive</summary>
-      Folders : seq<String>; 
+      Folders : string seq; 
       ///<summary>The list of files to ignore</summary>
-      Blacklist : seq<String>; 
+      Blacklist : string seq; 
       ///<summary>The list of files to include</summary>
-      Whitelist : seq<String>; 
+      Whitelist : string seq; 
    }
 
 ///<summary>A factory class for creating ApplicationConfiguration records</summary>

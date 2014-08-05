@@ -31,7 +31,8 @@ open MBT.Core.IO
 /// </summary>
 type internal ResponseMessage =
    | ManifestProcessorResponse of Map<string, string> option
-   | SolverResponse of seq<FileEntry>
+   | SolverResponse of FileEntry seq
+   | FileChooserResponse of FileEntry seq
 
 /// <summary>
 /// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
@@ -43,9 +44,9 @@ type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
 /// The types of messages that can be sent to the actors of this backup system
 /// </summary>
 type internal Message =
-   | Shutdown
-   | BackupMessage
-   | SolverMessage of ActorMessage<string * seq<FileEntry>>
-   | ManifestProcessorMessage of ActorMessage<string>
    | ConsoleMessage of string
-
+   | FileChooserMessage of ActorMessage<ApplicationConfiguration>
+   | ManifestProcessorMessage of ActorMessage<string>
+   | SolverMessage of ActorMessage<string * FileEntry seq>
+   | BackupMessage
+   | Shutdown

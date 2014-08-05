@@ -25,48 +25,52 @@
 namespace MBT
 
 open Actors
-open MBT.Core
 open MBT.Console
-open Newtonsoft.Json
-open System.Collections.Generic
+open MBT.Core.IO
 open System.IO
+open System.Text.RegularExpressions
 
 /// <summary>
-/// Processes the manifest file for a given archive
+/// Actor that discovers which files to archive
 /// </summary>
-type internal ManifestProcessor() =
+type internal FileChooser() =
    inherit BaseStatelessActor()
-
+   
    (* Private methods *)
-   let tryDeserializeManifestFile fileContents =
-      try
-         puts "Deserializing file manifest"
-         JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContents)
-         |> Seq.map (|KeyValue|)
-         |> Map.ofSeq
-         |> Some
-      with
-         | ex -> 
-            puts <| sprintf "Could not deserialize file manifest. Reason: %A" ex
-            None
+   let stringLike str wildcard = 
+      let regex = new Regex("^" + Regex.Escape(wildcard).Replace(@"\*", ".*").Replace(@"\?", ".") + "$", RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
+      regex.IsMatch(str)
 
-   let tryReadManifestFile archiveFilePath =
-      let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
-      if File.Exists(pathOfManifestFile) then
-         File.ReadAllText(pathOfManifestFile) |> tryDeserializeManifestFile
+   let isFileOnList file fileList = fileList |> Seq.exists (fun pattern -> stringLike file pattern)
+
+   let shouldAcceptFile file blacklist whitelist =
+      if not <| File.Exists file then
+         false
+      elif isFileOnList file blacklist then
+         false
+      elif isFileOnList file whitelist then
+         true
+      elif not <| Seq.isEmpty whitelist then
+         false
       else
-         None
+         true
 
-   let processActorMessage msg =
-      let archiveFilePath = msg.Payload
-      let manifestFileOption = tryReadManifestFile archiveFilePath
-      
-      match msg.Callback with
-      | Some(callback) -> ManifestProcessorResponse(manifestFileOption) |> callback
-      | _ -> failwith "Unable to callback with response"
+   let chooseFiles (config : ApplicationConfiguration) =
+      try
+         query {
+            for folder in config.Folders do
+            for file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories) do
+            where (shouldAcceptFile file config.Blacklist config.Whitelist)
+            select (new FileEntry(file))
+         }
+         |> Seq.cache
+      with 
+      | _ -> 
+         puts <| sprintf "Unable to open folders %A" config.Folders
+         Seq.empty
 
    (* Public methods *)
    override this.ProcessStatelessMessage msg =
       match msg with
-      | ManifestProcessorMessage(actorMessage) -> processActorMessage actorMessage
+      | FileChooserMessage(config) -> ()
       | _ -> failwith "Unknown message"

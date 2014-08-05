@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  *)
 
-
 open MBT
 open MBT.Core
 open MBT.Console
@@ -35,7 +34,7 @@ type private WaitAgentState = Waiting | Done
 
 type private Message = Callback | Wait of AsyncReplyChannel<unit>
 
-let private AgentLoop (inbox : MailboxProcessor<Message>)=
+let private AgentLoop (inbox : MailboxProcessor<Message>) =
    let rec loop (state : WaitAgentState) =
       async {
          let! msg = inbox.Receive()

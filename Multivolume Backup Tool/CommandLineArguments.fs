@@ -42,19 +42,19 @@ type CommandLineArguments() =
    ///The folders you want to archive
    ///</summary>
    [<OptionArray("folders", Required = true, HelpText = "The folders to archive")>]
-   member val Folders = Array.empty<String> with get, set
+   member val Folders = Array.empty<string> with get, set
 
    ///<summary>
    ///The black list of files
    ///</summary>
    [<OptionArray("blacklist", Required = false, HelpText = "The files to blacklist. If only a blacklist is supplied, then all files except those on the blacklist will be archived. If a blacklist and a whitelist are supplied, then the blacklist is consulted first. Providing neither will accept all files")>]
-   member val Blacklist = Array.empty<String> with get, set
+   member val Blacklist = Array.empty<string> with get, set
    
    ///<summary>
    ///The white list of files
    ///</summary>
    [<OptionArray("whitelist", Required = false, HelpText = "The files to whitelist. If only a whiltelist is supplied, then no files except those on the whitelist will be archived. If a whitelist and a blacklist are supplied, then the blacklist is consulted first. Providing neither will accept all files")>]
-   member val Whitelist = Array.empty<String> with get, set
+   member val Whitelist = Array.empty<string> with get, set
    
    ///<summary>
    ///The parser state. Warning, this can be null because we're accessing a C# library

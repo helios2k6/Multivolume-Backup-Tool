@@ -26,8 +26,12 @@ namespace MBT
 
 open Actors
 
+/// <summary>
+/// The possible states the Backup Manager can be in
+/// </summary>
 type internal BackupManagerState = 
    | Initial
+   | Discovery
    | Preprocessing
    | Solving
    | Archiving
@@ -37,8 +41,11 @@ type internal BackupManagerState =
    | Finished
    | Error
 
-type internal BackupManager(initialState : BackupManagerState) =
-   inherit BaseStateActor<BackupManagerState>(initialState)
+/// <summary>
+/// The main actor for managing backup operations
+/// </summary>
+type internal BackupManager() =
+   inherit BaseStateActor<BackupManagerState>(Initial)
 
    override this.ProcessMessage state msg = failwith "Not implemented yet"
 

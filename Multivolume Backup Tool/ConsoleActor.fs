@@ -27,6 +27,9 @@ namespace MBT
 open Actors
 open System
 
+/// <summary>
+/// Actor that writes messages to the console
+/// </summary>
 type internal ConsoleActor private () =
    inherit BaseStatelessActor()
 
