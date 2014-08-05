@@ -58,8 +58,7 @@ type internal ManifestProcessor() =
          None
 
    let processActorMessage msg =
-      let archiveFilePath = msg.Payload
-      let manifestFileOption = tryReadManifestFile archiveFilePath
+      let manifestFileOption = tryReadManifestFile msg.Payload
       
       match msg.Callback with
       | Some(callback) -> ManifestProcessorResponse manifestFileOption |> callback

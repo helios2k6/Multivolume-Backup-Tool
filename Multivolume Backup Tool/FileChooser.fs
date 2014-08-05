@@ -75,8 +75,9 @@ type internal FileChooser() =
       | FileChooserMessage(actorMessage) -> 
          match actorMessage.Callback with
          | Some(callback) -> 
-            let configuration = actorMessage.Payload
-            let chosenFiles = chooseFiles configuration
-            FileChooserResponse chosenFiles |> callback
+            actorMessage.Payload
+            |> chooseFiles
+            |> FileChooserResponse 
+            |> callback
          | _ -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"
