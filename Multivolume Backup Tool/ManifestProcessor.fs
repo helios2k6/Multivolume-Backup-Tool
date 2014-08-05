@@ -52,8 +52,8 @@ type internal ManifestProcessor() =
 
    let tryReadManifestFile archiveFilePath =
       let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
-      if File.Exists(pathOfManifestFile) then
-         File.ReadAllText(pathOfManifestFile) |> tryDeserializeManifestFile
+      if File.Exists pathOfManifestFile then
+         File.ReadAllText pathOfManifestFile |> tryDeserializeManifestFile
       else
          None
 
@@ -62,7 +62,7 @@ type internal ManifestProcessor() =
       let manifestFileOption = tryReadManifestFile archiveFilePath
       
       match msg.Callback with
-      | Some(callback) -> ManifestProcessorResponse(manifestFileOption) |> callback
+      | Some(callback) -> ManifestProcessorResponse manifestFileOption |> callback
       | _ -> failwith "Unable to callback with response"
 
    (* Public methods *)

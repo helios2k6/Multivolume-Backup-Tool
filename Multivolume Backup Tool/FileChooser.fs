@@ -72,5 +72,11 @@ type internal FileChooser() =
    (* Public methods *)
    override this.ProcessStatelessMessage msg =
       match msg with
-      | FileChooserMessage(config) -> ()
+      | FileChooserMessage(actorMessage) -> 
+         match actorMessage.Callback with
+         | Some(callback) -> 
+            let configuration = actorMessage.Payload
+            let chosenFiles = chooseFiles configuration
+            FileChooserResponse chosenFiles |> callback
+         | _ -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"

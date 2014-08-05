@@ -39,7 +39,7 @@ type internal ConsoleActor private () =
       | ConsoleMessage(payload) -> Console.WriteLine(payload)
       | _ -> failwith "Unknown message"
    
-   member this.WriteLine msg = (this :> IActor<Message>).Post <| ConsoleMessage(msg)
+   member this.WriteLine msg = ConsoleMessage msg |> (this :> IActor<Message>).Post
 
    static member public Instance = new ConsoleActor()
 

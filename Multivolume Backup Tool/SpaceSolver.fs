@@ -62,6 +62,6 @@ type internal SpaceSolver() =
             let archiveRootPath = fst actorMessage.Payload
             let files = snd actorMessage.Payload
             let greedyResult = driveSpace archiveRootPath |> minusWiggleRoom |> solveUsingGreedy files
-            SolverResponse(greedyResult) |> callback
+            SolverResponse greedyResult |> callback
          | None -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"
