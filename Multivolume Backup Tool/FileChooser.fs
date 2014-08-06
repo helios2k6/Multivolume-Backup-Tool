@@ -72,12 +72,12 @@ type internal FileChooser() =
    (* Public methods *)
    override this.ProcessStatelessMessage msg =
       match msg with
-      | FileChooserMessage(actorMessage) -> 
+      | FileChooser(actorMessage) -> 
          match actorMessage.Callback with
          | Some(callback) -> 
             actorMessage.Payload
             |> chooseFiles
-            |> FileChooserResponse 
+            |> ResponseMessage.FileChooser
             |> callback
          | _ -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"

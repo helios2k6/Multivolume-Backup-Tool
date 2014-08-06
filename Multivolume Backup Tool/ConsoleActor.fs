@@ -36,10 +36,10 @@ type internal ConsoleActor private () =
    (* Public methods *)
    override this.ProcessStatelessMessage msg =
       match msg with
-      | ConsoleMessage(payload) -> Console.WriteLine(payload)
+      | Console(payload) -> Console.WriteLine(payload)
       | _ -> failwith "Unknown message"
    
-   member this.WriteLine msg = ConsoleMessage msg |> (this :> IActor<Message>).Post
+   member this.WriteLine msg = Message.Console msg |> (this :> IActor<Message>).Post
 
    static member public Instance = new ConsoleActor()
 

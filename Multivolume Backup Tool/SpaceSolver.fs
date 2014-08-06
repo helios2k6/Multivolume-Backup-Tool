@@ -56,12 +56,12 @@ type internal SpaceSolver() =
 
    override this.ProcessStatelessMessage msg =
       match msg with
-      | SolverMessage(actorMessage) ->
+      | Solver(actorMessage) ->
          match actorMessage.Callback with
          | Some(callback) -> 
-            let archiveRootPath = fst actorMessage.Payload
-            let files = snd actorMessage.Payload
+            let archiveRootPath = actorMessage.Payload.RootArchivePath
+            let files = actorMessage.Payload.Files
             let greedyResult = driveSpace archiveRootPath |> minusWiggleRoom |> solveUsingGreedy files
-            SolverResponse greedyResult |> callback
+            ResponseMessage.Solver greedyResult |> callback
          | None -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"

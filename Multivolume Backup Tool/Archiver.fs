@@ -24,38 +24,17 @@
 
 namespace MBT
 
-open MBT.Core.IO
+open Actors
 
-/// <summary>
-/// Represents the response message from the archiver
-/// </summary>
-type internal ArchiverResponse = { Archived : FileEntry seq; Failed : FileEntry seq }
+type internal Archiver() =
+   inherit BaseStatelessActor()
 
-/// <summary>
-/// Response messages that can be sent back as a callback parameter
-/// </summary>
-type internal ResponseMessage =
-   | ManifestProcessor of Map<string, string> option
-   | Solver of FileEntry seq
-   | FileChooser of FileEntry seq
-   | Archiver of ArchiverResponse
+   (* Private fields *)
+   static let DiskFullHResult = 0x70
+   static let ErrorHandleDiskFullHResult = 0x27
 
-/// <summary>
-/// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
-/// reduce typing
-/// </summary>
-type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
+   (* Private methods *)
 
-type internal SolverRequest = { RootArchivePath : string; Files : FileEntry seq }
 
-/// <summary>
-/// The types of messages that can be sent to the actors of this backup system
-/// </summary>
-type internal Message =
-   | Console of string
-   | FileChooser of ActorMessage<ApplicationConfiguration>
-   | ManifestProcessor of ActorMessage<string>
-   | Solver of ActorMessage<SolverRequest>
-   | Archiver of ActorMessage<FileEntry seq>
-   | Backup
-   | Shutdown
+   (* Public methods *)
+   override this.ProcessStatelessMessage msg = ()
