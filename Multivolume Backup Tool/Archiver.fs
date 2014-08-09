@@ -68,16 +68,20 @@ type internal Archiver() =
          | _ -> false
 
    let tryArchiveFile rootArchivePath sourceFile =
-      calculateArchiveFilePath rootArchivePath sourceFile
-      |> tryCopy sourceFile.Path
-   
+      let targetFilePath = calculateArchiveFilePath rootArchivePath sourceFile
+      let result = tryCopy sourceFile.Path targetFilePath
+
+      if result then Some targetFilePath else None
+
    let backupFiles rootArchivePath files =
       let foldFunc state file = 
-         let result = tryArchiveFile rootArchivePath file
-         if result then Seq.append file state else state
+          let result = tryArchiveFile rootArchivePath file
+          match result with
+          | Some(targetFilePath) -> Map.add file targetFilePath state
+          | None -> state
 
       puts "Beginning archive process"
-      Seq.fold foldFunc Seq.empty files
+
 
    let processMessage (msg : ActorMessage<StandardRequest>)=
       match msg.Callback with

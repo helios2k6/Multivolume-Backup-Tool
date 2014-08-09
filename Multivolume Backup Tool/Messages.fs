@@ -29,7 +29,7 @@ open MBT.Core.IO
 /// <summary>
 /// Represents the response message from the archiver
 /// </summary>
-type internal ArchiverResponse = { Archived : FileEntry seq; Failed : FileEntry seq }
+type internal ArchiverResponse = { Archived : Map<string, string>; Failed : FileEntry seq }
 
 /// <summary>
 /// Response messages that can be sent back as a callback parameter
@@ -46,9 +46,9 @@ type internal ResponseMessage =
 /// </summary>
 type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
 
-///<summary>
+/// <summary>
 /// A standard request record that has the root archive path and a file entry sequence
-///</summary>
+/// </summary>
 type internal StandardRequest = { RootArchivePath : string; Files : FileEntry seq }
 
 /// <summary>
@@ -60,5 +60,6 @@ type internal Message =
    | ManifestProcessor of ActorMessage<string>
    | Solver of ActorMessage<StandardRequest>
    | Archiver of ActorMessage<StandardRequest>
+   | Manifest of ActorMessage<string>
    | Backup
    | Shutdown
