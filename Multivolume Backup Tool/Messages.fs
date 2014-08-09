@@ -46,7 +46,10 @@ type internal ResponseMessage =
 /// </summary>
 type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
 
-type internal SolverRequest = { RootArchivePath : string; Files : FileEntry seq }
+///<summary>
+/// A standard request record that has the root archive path and a file entry sequence
+///</summary>
+type internal StandardRequest = { RootArchivePath : string; Files : FileEntry seq }
 
 /// <summary>
 /// The types of messages that can be sent to the actors of this backup system
@@ -55,7 +58,7 @@ type internal Message =
    | Console of string
    | FileChooser of ActorMessage<ApplicationConfiguration>
    | ManifestProcessor of ActorMessage<string>
-   | Solver of ActorMessage<SolverRequest>
-   | Archiver of ActorMessage<FileEntry seq>
+   | Solver of ActorMessage<StandardRequest>
+   | Archiver of ActorMessage<StandardRequest>
    | Backup
    | Shutdown

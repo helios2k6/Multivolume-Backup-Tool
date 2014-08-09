@@ -99,7 +99,28 @@ module Measure =
 
 ///<summary>A module with constants defined for the program</summary>
 module Constants =
+   /// <summary>
+   /// The file name of the file manifest
+   /// </summary>
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"
+
+module Seq = 
+   /// <summary>
+   /// Append an item to the end of a sequence
+   /// </summary>
+   let append item sequence = seq { yield! sequence; yield item; }
+
+   /// <summary>
+   /// Form a new sequence of elements where any element in first
+   /// that doesn't appear in second is yielded
+   /// </summary>
+   let except first second = 
+      let setOfSecond = Set.ofSeq second
+
+      seq {
+         for e in first do
+         if setOfSecond.Contains e then yield e
+      }
 
 module Math =
    /// <summary>

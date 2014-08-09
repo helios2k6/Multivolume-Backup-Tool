@@ -30,20 +30,11 @@ open MBT.Core
 open MBT.Core.IO
 open System
 open System.IO
-open System.Runtime.InteropServices
 
 type internal Archiver() =
    inherit BaseStatelessActor()
 
-   (* Private fields *)
-   static let DiskFullHResult = 0x70
-   static let ErrorHandleDiskFullHResult = 0x27
-
    (* Private methods *)
-   let isDiskOutOfSpace (ex : IOException) =
-      let hr =  Marshal.GetHRForException(ex)
-      hr = DiskFullHResult || hr = ErrorHandleDiskFullHResult
-
    let rerootPath newRoot (fileEntry : FileEntry) =
       let filePath = fileEntry.Path
       let pathRoot = Path.GetPathRoot(filePath)
@@ -66,10 +57,34 @@ type internal Archiver() =
          if not <| Directory.Exists(directoryOnly) then
             puts <| sprintf "Creating directory tree: %s" directoryOnly
             Directory.CreateDirectory(directoryOnly) |> ignore
+   
+   let tryCopy source dest =
+      try
+         createIntermediateDirectoryStructure dest
+         File.Copy(source, dest, true)
 
-   let processMessage (msg : ActorMessage<FileEntry seq>)=
+         true
+      with
+         | _ -> false
+
+   let tryArchiveFile rootArchivePath sourceFile =
+      calculateArchiveFilePath rootArchivePath sourceFile
+      |> tryCopy sourceFile.Path
+   
+   let backupFiles rootArchivePath files =
+      let foldFunc state file = 
+         let result = tryArchiveFile rootArchivePath file
+         if result then Seq.append file state else state
+
+      puts "Beginning archive process"
+      Seq.fold foldFunc Seq.empty files
+
+   let processMessage (msg : ActorMessage<StandardRequest>)=
       match msg.Callback with
-      | Some(callback) -> ()
+      | Some(callback) -> 
+         let backedUpFiles = backupFiles msg.Payload.RootArchivePath msg.Payload.Files
+         let remainingFiles = Seq.except msg.Payload.Files backedUpFiles
+         callback <| ResponseMessage.Archiver({ Archived = backedUpFiles; Failed = remainingFiles })
       | _ -> failwith "Unable to callback"
 
    (* Public methods *)
