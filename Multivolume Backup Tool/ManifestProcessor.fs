@@ -61,11 +61,11 @@ type internal ManifestProcessor() =
       let manifestFileOption = tryReadManifestFile msg.Payload
       
       match msg.Callback with
-      | Some(callback) -> ManifestProcessorResponse manifestFileOption |> callback
+      | Some(callback) -> ResponseMessage.ManifestProcessor manifestFileOption |> callback
       | _ -> failwith "Unable to callback with response"
 
    (* Public methods *)
    override this.ProcessStatelessMessage msg =
       match msg with
-      | ManifestProcessorMessage(actorMessage) -> processActorMessage actorMessage
+      | ManifestProcessor(actorMessage) -> processActorMessage actorMessage
       | _ -> failwith "Unknown message"

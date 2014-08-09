@@ -59,7 +59,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Archiver.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="CommandLineArguments.fs" />
@@ -72,6 +71,7 @@
     <Compile Include="FileChooser.fs" />
     <Compile Include="SpaceSolver.fs" />
     <Compile Include="ManifestProcessor.fs" />
+    <Compile Include="Archiver.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
