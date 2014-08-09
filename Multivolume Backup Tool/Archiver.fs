@@ -25,6 +25,12 @@
 namespace MBT
 
 open Actors
+open MBT.Console
+open MBT.Core
+open MBT.Core.IO
+open System
+open System.IO
+open System.Runtime.InteropServices
 
 type internal Archiver() =
    inherit BaseStatelessActor()
@@ -34,7 +40,40 @@ type internal Archiver() =
    static let ErrorHandleDiskFullHResult = 0x27
 
    (* Private methods *)
+   let isDiskOutOfSpace (ex : IOException) =
+      let hr =  Marshal.GetHRForException(ex)
+      hr = DiskFullHResult || hr = ErrorHandleDiskFullHResult
 
+   let rerootPath newRoot (fileEntry : FileEntry) =
+      let filePath = fileEntry.Path
+      let pathRoot = Path.GetPathRoot(filePath)
+      let derootedPath = filePath.Replace(pathRoot, String.Empty)
+      Path.Combine(newRoot, derootedPath)
+
+   let calculateArchiveFilePath archivePath (fileToArchive : FileEntry) =
+      let calculatedArchiveFilePath = rerootPath archivePath fileToArchive
+      if calculatedArchiveFilePath = Path.Combine(archivePath, Constants.FileManifestFileName) then
+         let fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileToArchive.Path)
+         let ext = Path.GetExtension(fileToArchive.Path)
+         Path.Combine(archivePath, fileNameWithoutExt, "_archive_file", ext)
+      else
+         calculatedArchiveFilePath
+
+   let createIntermediateDirectoryStructure filePath =
+      if not <| File.Exists(filePath) then
+         let fileName = Path.GetFileName(filePath)
+         let directoryOnly = filePath.Replace(fileName, String.Empty)
+         if not <| Directory.Exists(directoryOnly) then
+            puts <| sprintf "Creating directory tree: %s" directoryOnly
+            Directory.CreateDirectory(directoryOnly) |> ignore
+
+   let processMessage (msg : ActorMessage<FileEntry seq>)=
+      match msg.Callback with
+      | Some(callback) -> ()
+      | _ -> failwith "Unable to callback"
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg = ()
+   override this.ProcessStatelessMessage msg = 
+      match msg with
+      | Archiver(actorMessage) -> processMessage actorMessage
+      | _ -> failwith "Unknown message"
