@@ -122,6 +122,25 @@ module Seq =
          if setOfSecond.Contains e then yield e
       }
 
+module Map = 
+   /// <summary>
+   /// Retrieves the keys of the map
+   /// </summary>
+   /// <param name="map">The map</param>
+   let internal keys map = 
+      let folder state key _ = Seq.append key state
+
+      Map.fold folder Seq.empty map
+
+   /// <summary>
+   /// Retrieves the values of the map
+   /// </summary>
+   /// <param name="map">The map</param>
+   let internal values map =
+      let folder state _ value = Seq.append value state
+
+      Map.fold folder Seq.empty map
+
 module Math =
    /// <summary>
    /// Calculates the maximum between two unit integers

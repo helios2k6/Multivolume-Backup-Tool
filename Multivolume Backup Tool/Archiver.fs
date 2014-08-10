@@ -82,12 +82,13 @@ type internal Archiver() =
 
       puts "Beginning archive process"
 
+      Seq.fold foldFunc Map.empty files
 
-   let processMessage (msg : ActorMessage<StandardRequest>)=
+   let processMessage (msg : ActorMessage<StandardRequest>) =
       match msg.Callback with
       | Some(callback) -> 
          let backedUpFiles = backupFiles msg.Payload.RootArchivePath msg.Payload.Files
-         let remainingFiles = Seq.except msg.Payload.Files backedUpFiles
+         let remainingFiles = Seq.except msg.Payload.Files (Map.keys backedUpFiles)
          callback <| ResponseMessage.Archiver({ Archived = backedUpFiles; Failed = remainingFiles })
       | _ -> failwith "Unable to callback"
 
