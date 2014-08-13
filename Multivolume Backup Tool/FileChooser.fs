@@ -24,7 +24,6 @@
 
 namespace MBT
 
-open Actors
 open MBT.Console
 open MBT.Core.IO
 open System.IO

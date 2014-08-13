@@ -23,12 +23,8 @@
  *)
 
 open MBT
-open MBT.Core
 open MBT.Console
-open CommandLine
-open CommandLine.Text
 open Microsoft.FSharp.Control
-open System.IO
 
 type private WaitAgentState = Waiting | Done
 

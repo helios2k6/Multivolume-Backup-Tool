@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="ContinuationProcessor.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="CommandLineArguments.fs" />
     <Compile Include="ApplicationConfiguration.fs" />

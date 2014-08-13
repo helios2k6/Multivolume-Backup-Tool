@@ -24,7 +24,6 @@
 
 namespace MBT
 
-open Actors
 open MBT.Core
 open MBT.Console
 open Newtonsoft.Json

@@ -24,7 +24,9 @@
 
 namespace MBT
 
-open Actors
+open MBT.Core
+open Newtonsoft.Json
+open System.IO
 
 /// <summary>
 /// Actor in charge of writing the file manifest
@@ -32,5 +34,32 @@ open Actors
 type internal ManifestWriter() = 
    inherit BaseStatelessActor()
 
+   (* Private methods *)
+   let tryWriteManifestFile archivePath manifest =
+      try 
+         let serializedContext = JsonConvert.SerializeObject(manifest, Formatting.Indented)
+         let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
+         File.WriteAllText(manifestFilePath, serializedContext)
+         true
+      with
+         | _ -> false
+
+   let processMessage actorMessage = 
+      match actorMessage.Callback with
+      | Some(callback) -> 
+         let manifest = actorMessage.Payload.Manifest
+         let archivePath = actorMessage.Payload.RootArchivePath
+
+         let outputResult = tryWriteManifestFile archivePath manifest
+         if outputResult then
+            ResponseMessage.Manifest Success |> callback
+         else
+            ResponseMessage.Manifest Failure |> callback
+
+      | _ -> failwith "Unable to callback"
+
    (* Public methods *)
-   override this.ProcessStatelessMessage msg = ()
+   override this.ProcessStatelessMessage msg = 
+      match msg with 
+      | Manifest(actorMessage) -> processMessage actorMessage
+      | _ -> failwith "Unknown message"

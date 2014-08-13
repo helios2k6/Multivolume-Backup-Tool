@@ -24,7 +24,6 @@
 
 namespace MBT
 
-open Actors
 open MBT.Core.Math
 open MBT.Core.Measure
 open MBT.Core.IO
