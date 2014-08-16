@@ -24,45 +24,29 @@
 
 namespace MBT
 
-/// <summary>
-/// The possible states the Backup Manager can be in
-/// </summary>
-type internal BackupManagerState = 
-   | Initial
-   | Discovery
-   | Preprocessing
-   | Solving
-   | Archiving
-   | WritingManifest
-   | Continuation
-   | Switching
-   | Finished
-   | Error
+open MBT.Console
+open System
 
 /// <summary>
-/// The main actor for managing backup operations
+/// Prompts the user to switch volumes
 /// </summary>
-type internal BackupManager(config : ApplicationConfiguration) =
-   inherit BaseStateActor<BackupManagerState>(Initial)
-
-   (* Private fields *)
-   let fileChooser = new FileChooser()
-   let spaceSolver = new SpaceSolver()
-   let manifestProcessor = new ManifestProcessor()
-   let continuationProcessor = new ContinuationProcessor()
-   let volumeSwitcher = new VolumeSwitcher()
+type internal VolumeSwitcher() =
+   inherit BaseStatelessActor()
 
    (* Private methods *)
-   let compose message = 
-      
+   let promptUser() = 
+      puts "Prepare the next volume. Hit return when ready..."
+      Console.ReadLine() |> ignore
 
-   let processInitialStateMessage() =
-      fileChooser +! Message.FileChooser( 
-      Discovery
+   let processMessage actorMessage = 
+      match actorMessage.Callback with
+      | Some(callback) -> 
+         promptUser()
+         ResponseMessage.Switcher |> callback
+      | _ -> failwith "Unable to callback"
 
    (* Public methods *)
-   override this.ProcessMessage state msg = failwith "Not implemented yet"
-
-   override this.PreShutdown state msg = failwith "Not implemented yet"
-
-   override this.PostShutdown state msg = failwith "Not implemented yet"
+   override this.ProcessStatelessMessage msg = 
+      match msg with 
+      | Switcher(signal) -> processMessage signal
+      | _ -> failwith "Unknown message"

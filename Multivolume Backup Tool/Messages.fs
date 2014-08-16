@@ -46,12 +46,18 @@ type internal ResponseMessage =
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
    | Continuation of FileEntry seq
+   | Switcher
 
 /// <summary>
 /// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
 /// reduce typing
 /// </summary>
 type internal ActorMessage<'a> = ActorMessageAbstract<'a, ResponseMessage>
+/// <summary>
+/// An alias over the ActorMessage<unit> type. This is meant used for messages
+/// that serve no purpose other than signal to another actor
+/// </summary>
+type internal ActorSignal = ActorMessage<unit>
 
 /// <summary>
 /// A standard request record that has the root archive path and a file entry sequence
@@ -79,6 +85,6 @@ type internal Message =
    | Archiver of ActorMessage<StandardRequest>
    | Manifest of ActorMessage<ManifestRequest>
    | Continuation of ActorMessage<ContinuationRequest>
-   | Switcher
+   | Switcher of ActorSignal
    | Backup
    | Shutdown

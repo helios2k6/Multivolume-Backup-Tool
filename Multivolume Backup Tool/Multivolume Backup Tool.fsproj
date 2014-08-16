@@ -73,6 +73,7 @@
     <Compile Include="ContinuationProcessor.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
+    <Compile Include="VolumeSwitcher.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
