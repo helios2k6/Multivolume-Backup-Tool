@@ -26,7 +26,6 @@ namespace MBT
 namespace MBT.Core
 
 open System
-open System.Collections.Generic
 open System.IO
 
 ///<summary> Units of measure</summary>
@@ -108,7 +107,7 @@ module Seq =
    /// <summary>
    /// Append an item to the end of a sequence
    /// </summary>
-   let append item sequence = seq { yield! sequence; yield item; }
+   let appendItem item sequence = seq { yield! sequence; yield item; }
 
    /// <summary>
    /// Form a new sequence of elements where any element in first
@@ -128,7 +127,7 @@ module Map =
    /// </summary>
    /// <param name="map">The map</param>
    let internal keys map = 
-      let folder state key _ = Seq.append key state
+      let folder state key _ = Seq.appendItem key state
 
       Map.fold folder Seq.empty map
 
@@ -137,7 +136,7 @@ module Map =
    /// </summary>
    /// <param name="map">The map</param>
    let internal values map =
-      let folder state _ value = Seq.append value state
+      let folder state _ value = Seq.appendItem value state
 
       Map.fold folder Seq.empty map
 

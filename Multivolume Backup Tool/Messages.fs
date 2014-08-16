@@ -29,12 +29,14 @@ open MBT.Core.IO
 /// <summary>
 /// Represents the response message from the archiver
 /// </summary>
-type internal ArchiverResponse = { Archived : Map<string, string>; Failed : FileEntry seq }
+type internal ArchiverResponse = { Archived : Map<FileEntry, string>; Failed : FileEntry seq }
 
 /// <summary>
 /// The standard response to any request
 /// </summary>
 type internal StandardResponse = Success | Failure
+
+type internal ContinuationResponse = { Archived : FileEntry seq; Remaining : FileEntry seq }
 
 /// <summary>
 /// Response messages that can be sent back as a callback parameter
@@ -45,7 +47,7 @@ type internal ResponseMessage =
    | FileChooser of FileEntry seq
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
-   | Continuation
+   | Continuation of ContinuationResponse
 
 /// <summary>
 /// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
@@ -61,7 +63,7 @@ type internal StandardRequest = { RootArchivePath : string; Files : FileEntry se
 /// <summary>
 /// A request record to the manifest writer
 /// </summary>
-type internal ManifestRequest = { RootArchivePath : string; Manifest : Map<string, string> }
+type internal ManifestRequest = { RootArchivePath : string; Manifest : Map<FileEntry, string> }
 
 /// <summary>
 /// A request record to the continuation manager
@@ -70,7 +72,7 @@ type internal ContinuationRequest =
    {
       AllFiles : FileEntry seq;
       KnownBackedUpFiles : FileEntry seq;
-      LatestManifest : Map<string, string> 
+      LatestManifest : Map<FileEntry, string> 
    }
 
 /// <summary>

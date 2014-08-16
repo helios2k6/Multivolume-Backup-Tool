@@ -57,7 +57,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="ContinuationProcessor.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="CommandLineArguments.fs" />
     <Compile Include="ApplicationConfiguration.fs" />
@@ -71,6 +70,7 @@
     <Compile Include="ManifestProcessor.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="ManifestWriter.fs" />
+    <Compile Include="ContinuationProcessor.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
