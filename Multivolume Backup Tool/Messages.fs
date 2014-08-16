@@ -36,8 +36,6 @@ type internal ArchiverResponse = { Archived : Map<FileEntry, string>; Failed : F
 /// </summary>
 type internal StandardResponse = Success | Failure
 
-type internal ContinuationResponse = { Archived : FileEntry seq; Remaining : FileEntry seq }
-
 /// <summary>
 /// Response messages that can be sent back as a callback parameter
 /// </summary>
@@ -47,7 +45,7 @@ type internal ResponseMessage =
    | FileChooser of FileEntry seq
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
-   | Continuation of ContinuationResponse
+   | Continuation of FileEntry seq
 
 /// <summary>
 /// An alias over the ActorMessageAbstract<a, b> generic. This is just to 
@@ -68,12 +66,7 @@ type internal ManifestRequest = { RootArchivePath : string; Manifest : Map<FileE
 /// <summary>
 /// A request record to the continuation manager
 /// </summary>
-type internal ContinuationRequest = 
-   {
-      AllFiles : FileEntry seq;
-      KnownBackedUpFiles : FileEntry seq;
-      LatestManifest : Map<FileEntry, string> 
-   }
+type internal ContinuationRequest = { Remaining : FileEntry seq; LatestArchive : FileEntry seq; }
 
 /// <summary>
 /// The types of messages that can be sent to the actors of this backup system
@@ -86,5 +79,6 @@ type internal Message =
    | Archiver of ActorMessage<StandardRequest>
    | Manifest of ActorMessage<ManifestRequest>
    | Continuation of ActorMessage<ContinuationRequest>
+   | Switcher
    | Backup
    | Shutdown

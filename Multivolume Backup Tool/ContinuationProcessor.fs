@@ -26,26 +26,19 @@ namespace MBT
 
 open MBT.Core
 
+/// <summary>
+/// Processes the result of the archiver and calculates what files are remaining
+/// </summary>
 type internal ContinuationProcessor() =
    inherit BaseStatelessActor()
 
    (* Private methods *)
-   let calculateAllArchivedFiles knownArchivedFiles manifest = Map.keys manifest |> Seq.append knownArchivedFiles
-
-   let calculateRemainingFiles allFiles knownArchivedFiles = 
-      let allFilesSet = Set.ofSeq allFiles
-      let allKnownArchivedFiles = Set.ofSeq knownArchivedFiles
-
-      allFilesSet - allKnownArchivedFiles
-
    let processMessage actorMessage = 
       match actorMessage.Callback with
       | Some(callback) -> 
-         let payload = actorMessage.Payload
-         let allArchivedFiles = calculateAllArchivedFiles payload.KnownBackedUpFiles payload.LatestManifest
-         let remaining = calculateRemainingFiles payload.AllFiles allArchivedFiles
-         
-         ResponseMessage.Continuation { Archived = allArchivedFiles; Remaining = remaining } |> callback
+         Seq.except actorMessage.Payload.Remaining actorMessage.Payload.LatestArchive
+         |> ResponseMessage.Continuation 
+         |> callback
       | _ -> failwith "Unable to callback"
 
    (* Public methods *)
