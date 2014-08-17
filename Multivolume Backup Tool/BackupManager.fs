@@ -53,12 +53,6 @@ type internal BackupManager(config : ApplicationConfiguration) =
    let volumeSwitcher = new VolumeSwitcher()
 
    (* Private methods *)
-   let compose message = 
-      
-
-   let processInitialStateMessage() =
-      fileChooser +! Message.FileChooser( 
-      Discovery
 
    (* Public methods *)
    override this.ProcessMessage state msg = failwith "Not implemented yet"
