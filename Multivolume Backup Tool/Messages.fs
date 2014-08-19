@@ -40,9 +40,9 @@ type internal StandardResponse = Success | Failure
 /// Response messages that can be sent back as a callback parameter
 /// </summary>
 type internal ResponseMessage =
+   | FileChooser of FileEntry seq
    | ManifestProcessor of Map<string, string> option
    | Solver of FileEntry seq
-   | FileChooser of FileEntry seq
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
    | Continuation of FileEntry seq

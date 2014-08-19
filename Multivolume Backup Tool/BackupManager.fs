@@ -53,6 +53,25 @@ type internal BackupManager(config : ApplicationConfiguration) =
    let volumeSwitcher = new VolumeSwitcher()
 
    (* Private methods *)
+   let handleSolvingStateMessage msg =
+      match msg with
+      | ResponseMessage.Solver(files) -> ()
+      | _ -> failwith "Unknown message"
+
+   let handlePreprocessingStateMessage msg =
+      match msg with
+      | ResponseMessage.ManifestProcessor(oldManifest) -> ()
+      | _ -> failwith "Unknown message"
+
+   let handleDiscoveryStateMessage msg =
+      match msg with
+      | ResponseMessage.FileChooser(files) -> ()
+      | _ -> failwith "Unknown message"
+
+   let handleInitialStateMessage msg = 
+      match msg with
+      | Backup -> ()
+      | _ -> failwith "Unknown message"
 
    (* Public methods *)
    override this.ProcessMessage state msg = failwith "Not implemented yet"
