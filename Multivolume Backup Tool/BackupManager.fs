@@ -53,28 +53,53 @@ type internal BackupManager(config : ApplicationConfiguration) =
    let volumeSwitcher = new VolumeSwitcher()
 
    (* Private methods *)
+   let handleSwitchingStateMessage msg =
+      match msg with
+      | ResponseMessage.Switcher -> Error
+      | _ -> failwith "Unknown message"
+
+   let handleContinuationStateMessage msg =
+      match msg with
+      | ResponseMessage.Continuation(files) -> Error
+      | _ -> failwith "Unknown message"
+
+   let handleWritingManifestStateMessage msg =
+      match msg with
+      | ResponseMessage.Manifest(result) -> Error
+      | _ -> failwith "Unknown message"
+
+   let handleArchivingStateMessage msg =
+      match msg with
+      | ResponseMessage.Archiver(response) -> Error
+      | _ -> failwith "Unknown message"
+
    let handleSolvingStateMessage msg =
       match msg with
-      | ResponseMessage.Solver(files) -> ()
+      | ResponseMessage.Solver(files) -> Error
       | _ -> failwith "Unknown message"
 
    let handlePreprocessingStateMessage msg =
       match msg with
-      | ResponseMessage.ManifestProcessor(oldManifest) -> ()
+      | ResponseMessage.ManifestProcessor(oldManifest) -> Error
       | _ -> failwith "Unknown message"
 
    let handleDiscoveryStateMessage msg =
       match msg with
-      | ResponseMessage.FileChooser(files) -> ()
+      | ResponseMessage.FileChooser(files) -> Error
       | _ -> failwith "Unknown message"
 
    let handleInitialStateMessage msg = 
       match msg with
-      | Backup -> ()
+      | Backup -> Error
       | _ -> failwith "Unknown message"
 
    (* Public methods *)
-   override this.ProcessMessage state msg = failwith "Not implemented yet"
+   override this.ProcessMessage state msg = 
+      match state with
+      | Initial -> handleInitialStateMessage msg
+      | Finished -> failwith "Backup already finished. Cannot accept any more messages"
+      | Error -> failwith "Backup has error'ed out. Cannot accept any more messages"
+      | _ -> failwith "Backup unable to accept messages. Invalid state"
 
    override this.PreShutdown state msg = failwith "Not implemented yet"
 
