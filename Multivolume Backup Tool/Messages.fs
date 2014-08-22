@@ -75,6 +75,11 @@ type internal ManifestRequest = { RootArchivePath : string; Manifest : Map<FileE
 type internal ContinuationRequest = { Remaining : FileEntry seq; LatestArchive : FileEntry seq; }
 
 /// <summary>
+/// A wrapper around the response message within the Message
+/// </summary>
+type internal BackupRequest = Start | Response of ResponseMessage
+
+/// <summary>
 /// The types of messages that can be sent to the actors of this backup system
 /// </summary>
 type internal Message =
@@ -86,5 +91,5 @@ type internal Message =
    | Manifest of ActorMessage<ManifestRequest>
    | Continuation of ActorMessage<ContinuationRequest>
    | Switcher of ActorSignal
-   | Backup
+   | Backup of BackupRequest
    | Shutdown

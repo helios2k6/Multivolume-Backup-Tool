@@ -24,8 +24,6 @@
 
 namespace MBT
 
-open Actors
-
 /// <summary>
 /// Defines what a message is
 /// </summary>
