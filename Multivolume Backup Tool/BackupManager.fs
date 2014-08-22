@@ -24,6 +24,9 @@
 
 namespace MBT
 
+open Actors
+open Actors.ActorOperations
+
 /// <summary>
 /// The possible states the Backup Manager can be in
 /// </summary>
@@ -42,64 +45,49 @@ type internal BackupManagerState =
 /// <summary>
 /// The main actor for managing backup operations
 /// </summary>
-type internal BackupManager(config : ApplicationConfiguration) =
+type internal BackupManager(config : ApplicationConfiguration) as this =
    inherit BaseStateActor<BackupManagerState>(Initial)
 
    (* Private fields *)
    let fileChooser = new FileChooser()
-   let spaceSolver = new SpaceSolver()
    let manifestProcessor = new ManifestProcessor()
+   let spaceSolver = new SpaceSolver()
    let continuationProcessor = new ContinuationProcessor()
    let volumeSwitcher = new VolumeSwitcher()
 
    (* Private methods *)
-   let handleSwitchingStateMessage msg =
-      match msg with
-      | ResponseMessage.Switcher -> Error
-      | _ -> failwith "Unknown message"
+   let callback responseMessage = Message.Backup(Response responseMessage) |> (this :> IActor<_>).Post
 
-   let handleContinuationStateMessage msg =
-      match msg with
-      | ResponseMessage.Continuation(files) -> Error
-      | _ -> failwith "Unknown message"
-
-   let handleWritingManifestStateMessage msg =
-      match msg with
-      | ResponseMessage.Manifest(result) -> Error
-      | _ -> failwith "Unknown message"
-
-   let handleArchivingStateMessage msg =
-      match msg with
-      | ResponseMessage.Archiver(response) -> Error
-      | _ -> failwith "Unknown message"
-
-   let handleSolvingStateMessage msg =
-      match msg with
-      | ResponseMessage.Solver(files) -> Error
-      | _ -> failwith "Unknown message"
-
-   let handlePreprocessingStateMessage msg =
-      match msg with
-      | ResponseMessage.ManifestProcessor(oldManifest) -> Error
-      | _ -> failwith "Unknown message"
+   let handleInitialStateMessage() = 
+         fileChooser +! Message.FileChooser({ Payload = config; Callback = Some callback })
+         Discovery
 
    let handleDiscoveryStateMessage msg =
       match msg with
-      | ResponseMessage.FileChooser(files) -> Error
+      | ResponseMessage.FileChooser(files) ->
+         manifestProcessor +! Message.ManifestProcessor({ Payload = config.ArchiveFilePath; Callback = Some callback })
+         Preprocessing
       | _ -> failwith "Unknown message"
 
-   let handleInitialStateMessage msg = 
-      match msg with
-      | Backup -> Error
-      | _ -> failwith "Unknown message"
+   let dispatch state request =
+      match state, request with
+      | Initial, Start -> handleInitialStateMessage()
+      | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
+      | Preprocessing, Response(msg)  -> Error
+      | Solving, Response(msg)  -> Error
+      | Archiving, Response(msg)  -> Error
+      | WritingManifest, Response(msg)  -> Error
+      | Continuation, Response(msg)  -> Error
+      | Switching, Response(msg)  -> Error
+      | Finished, _ -> Error
+      | Error, _ -> Error
+      | _, _ -> failwith "Unknown state message combination"
 
    (* Public methods *)
    override this.ProcessMessage state msg = 
-      match state with
-      | Initial -> handleInitialStateMessage msg
-      | Finished -> failwith "Backup already finished. Cannot accept any more messages"
-      | Error -> failwith "Backup has error'ed out. Cannot accept any more messages"
-      | _ -> failwith "Backup unable to accept messages. Invalid state"
+      match msg with
+      | Backup(request) -> dispatch state request
+      | _ -> failwith "Unknown message"
 
    override this.PreShutdown state msg = failwith "Not implemented yet"
 
