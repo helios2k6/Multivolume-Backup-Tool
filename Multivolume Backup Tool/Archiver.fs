@@ -51,7 +51,7 @@ type internal Archiver() =
          calculatedArchiveFilePath
 
    let createIntermediateDirectoryStructure filePath =
-      if not <| File.Exists(filePath) then
+      if not <| File.Exists filePath then
          let fileName = Path.GetFileName(filePath)
          let directoryOnly = filePath.Replace(fileName, String.Empty)
          if not <| Directory.Exists(directoryOnly) then

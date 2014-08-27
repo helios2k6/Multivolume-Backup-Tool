@@ -73,12 +73,12 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
       match state, request with
       | Initial, Start -> handleInitialStateMessage()
       | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
-      | Preprocessing, Response(msg)  -> Error
-      | Solving, Response(msg)  -> Error
-      | Archiving, Response(msg)  -> Error
-      | WritingManifest, Response(msg)  -> Error
-      | Continuation, Response(msg)  -> Error
-      | Switching, Response(msg)  -> Error
+      | Preprocessing, Response(msg) -> Error
+      | Solving, Response(msg) -> Error
+      | Archiving, Response(msg) -> Error
+      | WritingManifest, Response(msg) -> Error
+      | Continuation, Response(msg) -> Error
+      | Switching, Response(msg) -> Error
       | Finished, _ -> Error
       | Error, _ -> Error
       | _, _ -> failwith "Unknown state message combination"
