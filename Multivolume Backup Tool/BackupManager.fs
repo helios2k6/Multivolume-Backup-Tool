@@ -59,8 +59,8 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
    let callback responseMessage = Message.Backup(Response responseMessage) |> (this :> IActor<_>).Post
 
    let handleInitialStateMessage() = 
-         fileChooser +! Message.FileChooser({ Payload = config; Callback = Some callback })
-         Discovery
+      fileChooser +! Message.FileChooser({ Payload = config; Callback = Some callback })
+      Discovery
 
    let handleDiscoveryStateMessage msg =
       match msg with
