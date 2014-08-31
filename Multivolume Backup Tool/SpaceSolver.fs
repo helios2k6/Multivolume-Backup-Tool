@@ -53,7 +53,7 @@ type internal SpaceSolver() =
 
       Seq.fold foldAction (Set.empty, capacity) files |> fst
 
-   override this.ProcessStatelessMessage msg =
+   override __.ProcessStatelessMessage msg =
       match msg with
       | Solver(actorMessage) ->
          match actorMessage.Callback with

@@ -46,7 +46,7 @@ type internal VolumeSwitcher() =
       | _ -> failwith "Unable to callback"
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg = 
+   override __.ProcessStatelessMessage msg = 
       match msg with 
       | Switcher(signal) -> processMessage signal
       | _ -> failwith "Unknown message"

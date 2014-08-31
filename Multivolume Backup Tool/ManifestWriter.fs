@@ -120,7 +120,7 @@ type internal ManifestWriter() =
       | _ -> failwith "Unable to callback"
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg = 
+   override __.ProcessStatelessMessage msg = 
       match msg with 
       | Manifest(actorMessage) -> processMessage actorMessage
       | _ -> failwith "Unknown message"

@@ -88,11 +88,11 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
       | _, _ -> failwith "Unknown state message combination"
 
    (* Public methods *)
-   override this.ProcessMessage state msg = 
+   override __.ProcessMessage state msg = 
       match msg with
       | Backup(request) -> dispatch state request
       | _ -> failwith "Unknown message"
 
-   override this.PreShutdown state msg = failwith "Not implemented yet"
+   override __.PreShutdown state msg = failwith "Not implemented yet"
 
-   override this.PostShutdown state msg = failwith "Not implemented yet"
+   override __.PostShutdown state msg = failwith "Not implemented yet"

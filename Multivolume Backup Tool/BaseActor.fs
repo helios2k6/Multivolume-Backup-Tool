@@ -46,7 +46,7 @@ open Impl
 type internal BaseStateActor<'state>(initialState : 'state) =
    inherit StateActor<Message, 'state>(initialState)
 
-   override this.IsShutdownMessage msg = isShutdownMessage msg
+   override __.IsShutdownMessage msg = isShutdownMessage msg
 
 /// <summary>
 /// The base class for any stateless actors in this actor system
@@ -55,4 +55,4 @@ type internal BaseStateActor<'state>(initialState : 'state) =
 type internal BaseStatelessActor() =
    inherit StatelessActor<Message>()
 
-   override this.IsShutdownMessage msg = isShutdownMessage msg
+   override __.IsShutdownMessage msg = isShutdownMessage msg

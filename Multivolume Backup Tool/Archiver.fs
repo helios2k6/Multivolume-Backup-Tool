@@ -93,7 +93,7 @@ type internal Archiver() =
       | _ -> failwith "Unable to callback"
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg = 
+   override __.ProcessStatelessMessage msg = 
       match msg with
       | Archiver(actorMessage) -> processMessage actorMessage
       | _ -> failwith "Unknown message"

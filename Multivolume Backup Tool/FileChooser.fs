@@ -69,7 +69,7 @@ type internal FileChooser() =
          Seq.empty
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg =
+   override __.ProcessStatelessMessage msg =
       match msg with
       | FileChooser(actorMessage) -> 
          match actorMessage.Callback with

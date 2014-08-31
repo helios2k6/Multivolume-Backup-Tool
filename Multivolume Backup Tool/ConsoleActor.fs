@@ -34,7 +34,7 @@ type internal ConsoleActor private () =
    inherit BaseStatelessActor()
 
    (* Public methods *)
-   override this.ProcessStatelessMessage msg =
+   override __.ProcessStatelessMessage msg =
       match msg with
       | Console(payload) -> Console.WriteLine(payload)
       | _ -> failwith "Unknown message"
