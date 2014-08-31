@@ -26,6 +26,14 @@ namespace MBT
 
 open Actors
 open Actors.ActorOperations
+open MBT.Core.IO
+
+/// <summary>
+/// Represents the first possible state information
+/// </summary>
+type internal AlphaState = { AllFiles : FileEntry seq }
+
+type internal BetaState = { AllFiles : FileEntry seq; Manifest : Map<string, string> }
 
 /// <summary>
 /// The possible states the Backup Manager can be in
@@ -33,7 +41,7 @@ open Actors.ActorOperations
 type internal BackupManagerState = 
    | Initial
    | Discovery
-   | Preprocessing
+   | Preprocessing of AlphaState
    | Solving
    | Archiving
    | WritingManifest
@@ -66,14 +74,14 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
       match msg with
       | ResponseMessage.FileChooser(files) ->
          manifestProcessor +! Message.ManifestProcessor({ Payload = config.ArchiveFilePath; Callback = Some callback })
-         Preprocessing
+         Preprocessing({ AllFiles = files })
       | _ -> failwith "Unknown message"
 
    let dispatch state request =
       match state, request with
       | Initial, Start -> handleInitialStateMessage()
       | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
-      | Preprocessing, Response(msg) -> Error
+      | Preprocessing(info), Response(msg) -> Error
       | Solving, Response(msg) -> Error
       | Archiving, Response(msg) -> Error
       | WritingManifest, Response(msg) -> Error
