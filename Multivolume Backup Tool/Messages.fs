@@ -67,7 +67,7 @@ type internal StandardRequest = { RootArchivePath : string; Files : FileEntry se
 /// <summary>
 /// A request record to the manifest writer
 /// </summary>
-type internal ManifestRequest = { RootArchivePath : string; Manifest : Map<FileEntry, string> }
+type internal ManifestRequest = { RootArchivePath : string; StorageReport : Map<string, string> }
 
 /// <summary>
 /// A request record to the continuation manager

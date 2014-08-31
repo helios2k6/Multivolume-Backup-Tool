@@ -25,8 +25,26 @@
 namespace MBT
 
 open MBT.Core
+open MBT.Console
 open Newtonsoft.Json
+open System.Collections.Generic
 open System.IO
+
+/// <summary>
+/// Serialization object for a file manifest
+/// </summary>
+[<JsonObject(MemberSerialization.OptIn)>]
+type ManifestInfo() =
+   /// <summary>
+   /// The mapping between live files and storage files
+   /// </summary>
+   [<JsonProperty("LiveToStorage")>]
+   member val LiveToStorage = new Dictionary<string, string>() with get, set
+   /// <summary>
+   /// The mapping between storage files and live files
+   /// </summary>
+   [<JsonProperty("StorageToLive")>]
+   member val StorageToLive = new Dictionary<string, string>() with get, set
 
 /// <summary>
 /// Actor in charge of writing the file manifest
@@ -35,10 +53,53 @@ type internal ManifestWriter() =
    inherit BaseStatelessActor()
 
    (* Private methods *)
-   let tryWriteManifestFile archivePath manifest =
-      try 
-         let serializedContext = JsonConvert.SerializeObject(manifest, Formatting.Indented)
+   let tryDeserializeManifestInfo fileContents =
+      try
+         Some <| JsonConvert.DeserializeObject<ManifestInfo>(fileContents)
+      with
+         | ex -> 
+            puts <| sprintf "Could not deserialize file manifest. Reason: %A" ex
+            None
+
+   let tryReadManifestFile archiveFilePath =
+      let pathOfManifestFile = Path.Combine(archiveFilePath, Constants.FileManifestFileName)
+      if File.Exists pathOfManifestFile then
+         File.ReadAllText pathOfManifestFile |> tryDeserializeManifestInfo
+      else
+         None
+   
+   let mergeManifestAndStorageReport (existingManifest : ManifestInfo) storageReport =
+      let iterAction live storage =
+         let oldLiveToStorageResult, oldLiveToStorage = existingManifest.LiveToStorage.TryGetValue live
+         let oldStorageToLiveResult, oldStorageToLive = existingManifest.StorageToLive.TryGetValue storage
+
+         if oldLiveToStorageResult then existingManifest.LiveToStorage.Remove oldLiveToStorage |> ignore
+         if oldStorageToLiveResult then existingManifest.StorageToLive.Remove oldStorageToLive |> ignore
+
+         existingManifest.LiveToStorage.[live] <- storage
+         existingManifest.StorageToLive.[storage] <- live
+
+      Map.iter iterAction storageReport
+   
+   let createManifestInfo archivePath storageReport = 
+      let existingManifestOption = tryReadManifestFile archivePath
+
+      match existingManifestOption with
+      | Some(manifestInfo) -> 
+         mergeManifestAndStorageReport manifestInfo storageReport
+         manifestInfo
+      | _ -> 
+         let manifestInfo = new ManifestInfo()
+         manifestInfo.LiveToStorage <- Map.convertToDictionary storageReport
+         manifestInfo.StorageToLive <- Map.convertToDictionary << Map.reverse <| storageReport
+         manifestInfo
+
+   let tryWriteManifestFile archivePath storageReport =
+      try
+         let manifestInfo = createManifestInfo archivePath storageReport
+         let serializedContext = JsonConvert.SerializeObject(manifestInfo, Formatting.Indented)
          let manifestFilePath = Path.Combine(archivePath, Constants.FileManifestFileName)
+
          File.WriteAllText(manifestFilePath, serializedContext)
          true
       with
@@ -47,10 +108,10 @@ type internal ManifestWriter() =
    let processMessage actorMessage = 
       match actorMessage.Callback with
       | Some(callback) -> 
-         let manifest = actorMessage.Payload.Manifest
+         let storageReport = actorMessage.Payload.StorageReport
          let archivePath = actorMessage.Payload.RootArchivePath
 
-         let outputResult = tryWriteManifestFile archivePath manifest
+         let outputResult = tryWriteManifestFile archivePath storageReport
          if outputResult then
             ResponseMessage.Manifest Success |> callback
          else

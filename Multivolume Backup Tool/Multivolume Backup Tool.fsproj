@@ -67,7 +67,6 @@
     <Compile Include="ConsoleActor.fs" />
     <Compile Include="FileChooser.fs" />
     <Compile Include="SpaceSolver.fs" />
-    <Compile Include="ManifestProcessor.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="ManifestWriter.fs" />
     <Compile Include="ContinuationProcessor.fs" />

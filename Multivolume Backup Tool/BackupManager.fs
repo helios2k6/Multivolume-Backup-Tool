@@ -41,7 +41,6 @@ type internal BetaState = { AllFiles : FileEntry seq; Manifest : Map<string, str
 type internal BackupManagerState = 
    | Initial
    | Discovery
-   | Preprocessing of AlphaState
    | Solving
    | Archiving
    | WritingManifest
@@ -58,7 +57,6 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
 
    (* Private fields *)
    let fileChooser = new FileChooser()
-   let manifestProcessor = new ManifestProcessor()
    let spaceSolver = new SpaceSolver()
    let continuationProcessor = new ContinuationProcessor()
    let volumeSwitcher = new VolumeSwitcher()
@@ -73,15 +71,13 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
    let handleDiscoveryStateMessage msg =
       match msg with
       | ResponseMessage.FileChooser(files) ->
-         manifestProcessor +! Message.ManifestProcessor({ Payload = config.ArchiveFilePath; Callback = Some callback })
-         Preprocessing({ AllFiles = files })
+         Solving
       | _ -> failwith "Unknown message"
 
    let dispatch state request =
       match state, request with
       | Initial, Start -> handleInitialStateMessage()
       | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
-      | Preprocessing(info), Response(msg) -> Error
       | Solving, Response(msg) -> Error
       | Archiving, Response(msg) -> Error
       | WritingManifest, Response(msg) -> Error

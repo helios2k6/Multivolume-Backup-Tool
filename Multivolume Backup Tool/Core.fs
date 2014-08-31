@@ -122,6 +122,8 @@ module Seq =
       }
 
 module Map = 
+   open System.Collections.Generic
+
    /// <summary>
    /// Retrieves the keys of the map
    /// </summary>
@@ -139,6 +141,21 @@ module Map =
       let folder state _ value = Seq.appendItem value state
 
       Map.fold folder Seq.empty map
+
+   /// <summary>
+   /// Reverses the mappings. This will destroy any many-to-1 mappings. Use with caution
+   /// </summary>
+   /// <param name="map">The map</param>
+   let internal reverse map = Map.fold (fun revMap key value -> Map.add value key revMap) Map.empty map
+
+   /// <summary>
+   /// Converts a map to a dictionary
+   /// </summary>
+   /// <param name="map">The map to convert</param>
+   let internal convertToDictionary map =
+      let dict = new Dictionary<_,_>()
+      Map.iter (fun key value -> dict.[key] = value |> ignore) map
+      dict
 
 module Math =
    /// <summary>
@@ -187,12 +204,3 @@ module IO =
       override this.GetHashCode() = this.Path.GetHashCode()
 
       override this.ToString() = this.Path
-
-module Serialization =
-   type Manifest = { LiveToStorageMap : Map<string, string>; StorageToLiveMap : Map<string, string> }
-
-   let addOrReplace liveFile storageFile manifest = 
-      { 
-         LiveToStorageMap = Map.add liveFile storageFile manifest.LiveToStorageMap; 
-         StorageToLiveMap = Map.add storageFile liveFile manifest.StorageToLiveMap;
-      }
