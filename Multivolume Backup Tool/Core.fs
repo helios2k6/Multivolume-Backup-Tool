@@ -187,3 +187,12 @@ module IO =
       override this.GetHashCode() = this.Path.GetHashCode()
 
       override this.ToString() = this.Path
+
+module Serialization =
+   type Manifest = { LiveToStorageMap : Map<string, string>; StorageToLiveMap : Map<string, string> }
+
+   let addOrReplace liveFile storageFile manifest = 
+      { 
+         LiveToStorageMap = Map.add liveFile storageFile manifest.LiveToStorageMap; 
+         StorageToLiveMap = Map.add storageFile liveFile manifest.StorageToLiveMap;
+      }
