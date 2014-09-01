@@ -24,7 +24,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Multivolume_Backup_Tool.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartArguments>--archive-path C:\Users\anjohnson\Downloads\Temp --folders C:\Users\anjohnson\Pictures\Other</StartArguments>
+    <StartArguments>--archive-path J:\ --folders "D:\Andrew\Pictures\Anime Snapshots"</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -36,7 +36,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Release\Multivolume_Backup_Tool.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartArguments>--archive-path I:\ --folders Z:\</StartArguments>
+    <StartArguments>--archive-path J:\ --folders "D:\Andrew\Pictures\Anime Snapshots"</StartArguments>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ActorLibrary">
@@ -69,7 +69,6 @@
     <Compile Include="SpaceSolver.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="ManifestWriter.fs" />
-    <Compile Include="ContinuationProcessor.fs" />
     <Compile Include="VolumeSwitcher.fs" />
     <Compile Include="BackupManager.fs" />
     <Compile Include="Program.fs" />

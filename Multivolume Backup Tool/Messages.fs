@@ -41,11 +41,9 @@ type internal StandardResponse = Success | Failure
 /// </summary>
 type internal ResponseMessage =
    | FileChooser of FileEntry seq
-   | ManifestProcessor of Map<string, string> option
    | Solver of FileEntry seq
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
-   | Continuation of FileEntry seq
    | Switcher
 
 /// <summary>
@@ -70,11 +68,6 @@ type internal StandardRequest = { RootArchivePath : string; Files : FileEntry se
 type internal ManifestRequest = { RootArchivePath : string; StorageReport : Map<string, string> }
 
 /// <summary>
-/// A request record to the continuation manager
-/// </summary>
-type internal ContinuationRequest = { Remaining : FileEntry seq; LatestArchive : FileEntry seq; }
-
-/// <summary>
 /// A wrapper around the response message within the Message
 /// </summary>
 type internal BackupRequest = Start | Response of ResponseMessage
@@ -85,11 +78,14 @@ type internal BackupRequest = Start | Response of ResponseMessage
 type internal Message =
    | Console of string
    | FileChooser of ActorMessage<ApplicationConfiguration>
-   | ManifestProcessor of ActorMessage<string>
    | Solver of ActorMessage<StandardRequest>
    | Archiver of ActorMessage<StandardRequest>
    | Manifest of ActorMessage<ManifestRequest>
-   | Continuation of ActorMessage<ContinuationRequest>
    | Switcher of ActorSignal
    | Backup of BackupRequest
    | Shutdown
+
+/// <summary>
+/// A result message fired from the backup manager to its parent
+/// </summary>
+type internal BackupManagerResult = Finished | Error

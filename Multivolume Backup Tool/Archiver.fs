@@ -71,7 +71,11 @@ type internal Archiver() =
       let targetFilePath = calculateArchiveFilePath rootArchivePath sourceFile
       let result = tryCopy sourceFile.Path targetFilePath
 
-      if result then Some targetFilePath else None
+      if result then 
+         Some targetFilePath 
+      else 
+         puts <| sprintf "Unable to archive file: %s" sourceFile.Path
+         None
 
    let backupFiles rootArchivePath files =
       let foldFunc state file = 

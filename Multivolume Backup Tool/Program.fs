@@ -22,35 +22,36 @@
  * THE SOFTWARE.
  *)
 
+open Actors
+open Actors.ActorOperations
 open MBT
 open MBT.Console
-open Microsoft.FSharp.Control
+open System
+open System.Threading
 
-type private WaitAgentState = Waiting | Done
+type private Hypervisor(config : ApplicationConfiguration) as this =
+   let backupManager = new BackupManager(this, config)
+   let locker = new Object()
 
-type private Message = Callback | Wait of AsyncReplyChannel<unit>
+   member __.Run() = async {
+      let waitLoop() =
+         let mutable finishedWaiting = false
+         while not <| finishedWaiting do
+            finishedWaiting <- Monitor.Wait locker
 
-let private AgentLoop (inbox : MailboxProcessor<Message>) =
-   let rec loop (state : WaitAgentState) =
-      async {
-         let! msg = inbox.Receive()
+      backupManager +! Message.Backup(Start)
+      lock locker waitLoop
+   }
 
+   interface IActor<BackupManagerResult> with
+      member __.Post msg = 
          match msg with
-         | Callback -> return! loop Done
-         | Wait (replyChannel) ->
-            match state with
-            | Waiting -> 
-               let rec innerLoop() =
-                  async {
-                     let! nextMsg = inbox.Receive()
-                     match nextMsg with
-                     | Callback -> replyChannel.Reply()
-                     | _ -> return! innerLoop()
-                  }
-               do! innerLoop()
-            | Done -> replyChannel.Reply()
-      }
-   loop Waiting
+         | BackupManagerResult.Finished -> puts "Finished backup proceedure"
+         | BackupManagerResult.Error -> puts "Backup proceedure failed"
+
+         backupManager +! Message.Shutdown
+         lock locker (fun () -> Monitor.PulseAll locker)
+
 
 [<EntryPoint>]
 let main argv = 
@@ -62,6 +63,8 @@ let main argv =
    else
       puts "Beginning backup process"
       let appConfig = ApplicationConfigurationFactory.CreateConfiguration parsedArgs
+      let hypervisor = new Hypervisor(appConfig)
+      hypervisor.Run() |> Async.RunSynchronously
       puts "Finished backup process"
       
    0 // return an integer exit code

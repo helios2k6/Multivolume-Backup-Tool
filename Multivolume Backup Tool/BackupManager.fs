@@ -26,14 +26,13 @@ namespace MBT
 
 open Actors
 open Actors.ActorOperations
+open MBT.Core
 open MBT.Core.IO
 
 /// <summary>
-/// Represents the first possible state information
+/// Represents the associated stateful info of the BackupManager 
 /// </summary>
-type internal AlphaState = { AllFiles : FileEntry seq }
-
-type internal BetaState = { AllFiles : FileEntry seq; Manifest : Map<string, string> }
+type internal Info = { AllFiles : FileEntry seq; ProcessedFiles : FileEntry seq; RemainingFiles : FileEntry seq }
 
 /// <summary>
 /// The possible states the Backup Manager can be in
@@ -41,24 +40,24 @@ type internal BetaState = { AllFiles : FileEntry seq; Manifest : Map<string, str
 type internal BackupManagerState = 
    | Initial
    | Discovery
-   | Solving
-   | Archiving
-   | WritingManifest
-   | Continuation
-   | Switching
+   | Solving of Info
+   | Archiving of Info
+   | WritingManifest of Info
+   | Switching of Info
    | Finished
    | Error
 
 /// <summary>
 /// The main actor for managing backup operations
 /// </summary>
-type internal BackupManager(config : ApplicationConfiguration) as this =
+type internal BackupManager(parent : IActor<BackupManagerResult>, config : ApplicationConfiguration) as this =
    inherit BaseStateActor<BackupManagerState>(Initial)
 
    (* Private fields *)
    let fileChooser = new FileChooser()
    let spaceSolver = new SpaceSolver()
-   let continuationProcessor = new ContinuationProcessor()
+   let archiver = new Archiver()
+   let manifestWriter = new ManifestWriter()
    let volumeSwitcher = new VolumeSwitcher()
 
    (* Private methods *)
@@ -68,24 +67,80 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
       fileChooser +! Message.FileChooser({ Payload = config; Callback = Some callback })
       Discovery
 
+   let fireMessageToSolver files = spaceSolver +! Message.Solver({ Payload = { RootArchivePath = config.ArchiveFilePath; Files = files }; Callback = Some callback })
+
    let handleDiscoveryStateMessage msg =
       match msg with
-      | ResponseMessage.FileChooser(files) ->
-         Solving
+      | ResponseMessage.FileChooser(files) -> 
+         fireMessageToSolver files
+         Solving({ AllFiles = files; ProcessedFiles = Seq.empty; RemainingFiles = files })
+      | _ -> failwith "Unknown message"
+
+   let handleSolvingStateMessage msg info =
+      match msg with
+      | ResponseMessage.Solver(targetFiles) ->
+         archiver +! Message.Archiver({ Payload = { RootArchivePath = config.ArchiveFilePath; Files = targetFiles }; Callback = Some callback })
+         Archiving(info)
+      | _ -> failwith "Unknown message"
+
+   let handleArchivingStateMessage msg info =
+      match msg with
+      | ResponseMessage.Archiver(archiverResponse) ->
+         let processedFiles = Seq.cache <| seq { 
+            let archivedFileEntries = archiverResponse.Archived |> Map.keys
+            yield! info.ProcessedFiles
+            yield! archivedFileEntries
+            yield! archiverResponse.Failed 
+         }
+
+         (* -----> TODO: Not sure what to do about the failed files. <------ *)
+
+         let storageReport = Map.remapKeys (fun (entry : FileEntry) -> entry.Path) archiverResponse.Archived
+         manifestWriter +! Message.Manifest({ Payload = { RootArchivePath = config.ArchiveFilePath; StorageReport = storageReport }; Callback = Some callback })
+
+         let remainingFiles = Seq.except info.RemainingFiles processedFiles |> Seq.cache
+         WritingManifest({ info with ProcessedFiles = processedFiles; RemainingFiles = remainingFiles })
+      | _ -> failwith "Unknown message"
+
+   let handleWritingManifestStateMessage msg info =
+      match msg with
+      | ResponseMessage.Manifest(response) ->
+         match response with
+         | Success -> 
+            volumeSwitcher +! Message.Switcher({ Payload = (); Callback = Some callback })
+            Switching(info)
+         | Failure -> Error
+      | _ -> failwith "Unknown message"
+
+   let handleSwitchingStateMessage msg info =
+      match msg with
+      | ResponseMessage.Switcher ->
+         if Seq.isEmpty info.RemainingFiles then
+            Finished
+         else
+            fireMessageToSolver info.RemainingFiles
+            Solving(info)
       | _ -> failwith "Unknown message"
 
    let dispatch state request =
-      match state, request with
-      | Initial, Start -> handleInitialStateMessage()
-      | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
-      | Solving, Response(msg) -> Error
-      | Archiving, Response(msg) -> Error
-      | WritingManifest, Response(msg) -> Error
-      | Continuation, Response(msg) -> Error
-      | Switching, Response(msg) -> Error
-      | Finished, _ -> Error
-      | Error, _ -> Error
-      | _, _ -> failwith "Unknown state message combination"
+      let nextState = 
+         match state, request with
+         | Initial, Start -> handleInitialStateMessage()
+         | Discovery, Response(msg) -> handleDiscoveryStateMessage msg
+         | Solving(info), Response(msg) -> handleSolvingStateMessage msg info
+         | Archiving(info), Response(msg) -> handleArchivingStateMessage msg info
+         | WritingManifest(info), Response(msg) -> handleWritingManifestStateMessage msg info
+         | Switching(info), Response(msg) -> handleSwitchingStateMessage msg info
+         | Finished, _ -> Finished
+         | Error, _ -> Error
+         | _, _ -> failwith "Unknown state message combination"
+      
+      match nextState with
+      | Finished -> parent +! BackupManagerResult.Finished
+      | Error -> parent +! BackupManagerResult.Error
+      | _ -> ()
+
+      nextState
 
    (* Public methods *)
    override __.ProcessMessage state msg = 
@@ -93,6 +148,11 @@ type internal BackupManager(config : ApplicationConfiguration) as this =
       | Backup(request) -> dispatch state request
       | _ -> failwith "Unknown message"
 
-   override __.PreShutdown state msg = failwith "Not implemented yet"
+   override __.ProcessShutdown state _ = 
+      fileChooser +! Message.Shutdown
+      spaceSolver +! Message.Shutdown
+      archiver +! Message.Shutdown
+      manifestWriter +! Message.Shutdown
+      volumeSwitcher +! Message.Shutdown
 
-   override __.PostShutdown state msg = failwith "Not implemented yet"
+      state

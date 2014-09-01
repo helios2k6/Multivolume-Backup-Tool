@@ -157,6 +157,21 @@ module Map =
       Map.iter (fun key value -> dict.[key] = value |> ignore) map
       dict
 
+   /// <summary>
+   /// Remaps the keys of a map using a func to project the previous set of
+   /// keys into another domain
+   /// </summary>
+   /// <param name="map">The map</param>
+   /// <param name="remapper">The key -> key' projection</param>
+   let internal remapKeys remapper (map : Map<_,_>) =
+      let mapper (kvp : KeyValuePair<_,_>) =
+         let key = remapper kvp.Key
+         let value = kvp.Value
+
+         (key, value)
+
+      Seq.map mapper map |> Map.ofSeq
+
 module Math =
    /// <summary>
    /// Calculates the maximum between two unit integers
