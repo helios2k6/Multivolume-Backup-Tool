@@ -24,7 +24,6 @@
 
 namespace MBT
 
-open Actors
 open MBT.Console
 open MBT.Core
 open MBT.Core.IO
@@ -58,10 +57,20 @@ type internal Archiver() =
             puts <| sprintf "Creating directory tree: %s" directoryOnly
             Directory.CreateDirectory(directoryOnly) |> ignore
    
+   let copyFileIfNewer source dest =
+      if File.Exists dest then
+         let sourceWriteTime = File.GetLastWriteTimeUtc source
+         let destWriteTime = File.GetLastWriteTimeUtc dest
+
+         if sourceWriteTime > destWriteTime then
+            File.Copy(source, dest, true)
+      else
+         File.Copy(source, dest, true)
+
    let tryCopy source dest =
       try
-         //createIntermediateDirectoryStructure dest
-         //File.Copy(source, dest, true)
+         createIntermediateDirectoryStructure dest
+         copyFileIfNewer source dest
 
          true
       with

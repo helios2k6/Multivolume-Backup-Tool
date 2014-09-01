@@ -35,9 +35,8 @@ type private Hypervisor(config : ApplicationConfiguration) as this =
 
    member __.Run() = async {
       let waitLoop() =
-         let mutable finishedWaiting = false
-         while not <| finishedWaiting do
-            finishedWaiting <- Monitor.Wait locker
+         while not <| Monitor.Wait locker do
+            do()
 
       backupManager +! Message.Backup(Start)
       lock locker waitLoop
@@ -51,7 +50,6 @@ type private Hypervisor(config : ApplicationConfiguration) as this =
 
          backupManager +! Message.Shutdown
          lock locker (fun () -> Monitor.PulseAll locker)
-
 
 [<EntryPoint>]
 let main argv = 

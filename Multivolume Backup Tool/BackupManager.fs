@@ -107,19 +107,19 @@ type internal BackupManager(parent : IActor<BackupManagerResult>, config : Appli
       | ResponseMessage.Manifest(response) ->
          match response with
          | Success -> 
-            volumeSwitcher +! Message.Switcher({ Payload = (); Callback = Some callback })
-            Switching(info)
+            if Seq.isEmpty info.RemainingFiles then
+               Finished
+            else
+               volumeSwitcher +! Message.Switcher({ Payload = (); Callback = Some callback })
+               Switching(info)
          | Failure -> Error
       | _ -> failwith "Unknown message"
 
    let handleSwitchingStateMessage msg info =
       match msg with
       | ResponseMessage.Switcher ->
-         if Seq.isEmpty info.RemainingFiles then
-            Finished
-         else
-            fireMessageToSolver info.RemainingFiles
-            Solving(info)
+         fireMessageToSolver info.RemainingFiles
+         Solving(info)
       | _ -> failwith "Unknown message"
 
    let dispatch state request =
