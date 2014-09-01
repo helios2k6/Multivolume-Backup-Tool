@@ -60,8 +60,8 @@ type internal Archiver() =
    
    let tryCopy source dest =
       try
-         createIntermediateDirectoryStructure dest
-         File.Copy(source, dest, true)
+         //createIntermediateDirectoryStructure dest
+         //File.Copy(source, dest, true)
 
          true
       with

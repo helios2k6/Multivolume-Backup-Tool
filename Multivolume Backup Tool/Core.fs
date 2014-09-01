@@ -118,7 +118,7 @@ module Seq =
 
       seq {
          for e in first do
-         if setOfSecond.Contains e then yield e
+         if not <| setOfSecond.Contains e then yield e
       }
 
 module Map = 
@@ -154,7 +154,7 @@ module Map =
    /// <param name="map">The map to convert</param>
    let internal convertToDictionary map =
       let dict = new Dictionary<_,_>()
-      Map.iter (fun key value -> dict.[key] = value |> ignore) map
+      Map.iter (fun key value -> dict.[key] <- value) map
       dict
 
    /// <summary>
