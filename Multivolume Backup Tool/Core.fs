@@ -104,10 +104,20 @@ module Constants =
    let internal FileManifestFileName = "ARCHIVE_FILE_MANIFEST.txt"
 
 module Seq = 
+   open System.Collections.Generic
+
    /// <summary>
    /// Append an item to the end of a sequence
    /// </summary>
-   let appendItem item sequence = seq { yield! sequence; yield item; }
+   let appendItem item (sequence : 'a seq) = 
+      match sequence with
+      | :? IList<'a> as list -> 
+         list.Add item 
+         list :> 'a seq
+      | _ ->
+         let list = new List<'a>(sequence)
+         list.Add item
+         list :> 'a seq
 
    /// <summary>
    /// Form a new sequence of elements where any element in first
@@ -181,20 +191,28 @@ module Math =
    let internal max (a : int64<'a>) (b : int64<'a>) = if a >= b then a else b
 
 module IO =
+   type private FileMetadata = { Path : string; Size : int64<Measure.byte> }
+
    /// <summary>
    /// Represents a file
    /// </summary>
    type FileEntry(filePath : string) =
-      let fileInfo = lazy new FileInfo(filePath)
+      let initializeFileMetadata() =
+         let fileInfo = new FileInfo(filePath)
+         { Path = fileInfo.FullName; Size = fileInfo.Length |> Measure.WithByteMeasure}
 
-      ///<summary>Get the FileInfo object associated with this FileEntry</summary>
-      member this.Info with get() = fileInfo.Value
+      let fileMetadata = lazy initializeFileMetadata()
 
       ///<summary>Get the path passed into this FileEntry</summary>
-      member this.Path with get() = this.Info.FullName
+      member __.Path with get() = fileMetadata.Value.Path
 
       ///<summary>Get the size of this FileEntry in bytes</summary>
-      member this.Size with get() = this.Info.Length |> Measure.WithByteMeasure
+      member __.Size with get() = fileMetadata.Value.Size
+
+      /// <summary>
+      /// Forces the computation of all lazily initialized values
+      /// </summary>
+      member __.Compute() = fileMetadata.Force() |> ignore
 
       interface IComparable<FileEntry> with
          member this.CompareTo other = this.Path.CompareTo other.Path

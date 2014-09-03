@@ -86,7 +86,7 @@ type internal BackupManager(parent : IActor<BackupManagerResult>, config : Appli
    let handleArchivingStateMessage msg info =
       match msg with
       | ResponseMessage.Archiver(archiverResponse) ->
-         let processedFiles = Seq.cache <| seq { 
+         let processedFiles = seq { 
             let archivedFileEntries = archiverResponse.Archived |> Map.keys
             yield! info.ProcessedFiles
             yield! archivedFileEntries
@@ -98,7 +98,7 @@ type internal BackupManager(parent : IActor<BackupManagerResult>, config : Appli
          let storageReport = Map.remapKeys (fun (entry : FileEntry) -> entry.Path) archiverResponse.Archived
          manifestWriter +! Message.Manifest({ Payload = { RootArchivePath = config.ArchiveFilePath; StorageReport = storageReport }; Callback = Some callback })
 
-         let remainingFiles = Seq.except info.RemainingFiles processedFiles |> Seq.cache
+         let remainingFiles = Seq.except info.RemainingFiles processedFiles
          WritingManifest({ info with ProcessedFiles = processedFiles; RemainingFiles = remainingFiles })
       | _ -> failwith "Unknown message"
 

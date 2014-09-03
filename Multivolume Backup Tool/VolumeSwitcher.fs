@@ -37,6 +37,7 @@ type internal VolumeSwitcher() =
    let promptUser() = 
       puts "Prepare the next volume. Hit return when ready..."
       Console.ReadLine() |> ignore
+      puts "Resuming backup"
 
    let processMessage actorMessage = 
       match actorMessage.Callback with

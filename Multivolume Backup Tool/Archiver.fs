@@ -53,9 +53,7 @@ type internal Archiver() =
       if not <| File.Exists filePath then
          let fileName = Path.GetFileName(filePath)
          let directoryOnly = filePath.Replace(fileName, String.Empty)
-         if not <| Directory.Exists(directoryOnly) then
-            puts <| sprintf "Creating directory tree: %s" directoryOnly
-            Directory.CreateDirectory(directoryOnly) |> ignore
+         if not <| Directory.Exists directoryOnly then Directory.CreateDirectory directoryOnly |> ignore
    
    let copyFileIfNewer source dest =
       if File.Exists dest then
@@ -78,7 +76,9 @@ type internal Archiver() =
 
    let tryArchiveFile rootArchivePath sourceFile =
       let targetFilePath = calculateArchiveFilePath rootArchivePath sourceFile
-      let result = tryCopy sourceFile.Path targetFilePath
+      //let result = tryCopy sourceFile.Path targetFilePath
+
+      let result = true
 
       if result then 
          Some targetFilePath 

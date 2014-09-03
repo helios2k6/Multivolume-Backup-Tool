@@ -25,6 +25,7 @@
 namespace MBT
 
 open MBT.Console
+open MBT.Core
 open MBT.Core.IO
 open System.IO
 open System.Text.RegularExpressions
@@ -54,6 +55,11 @@ type internal FileChooser() =
       else
          true
 
+   let computeFileEntryAsync (entry : FileEntry) = async {
+      entry.Compute()
+      return entry
+   }
+
    let chooseFiles (config : ApplicationConfiguration) =
       try
          query {
@@ -62,7 +68,9 @@ type internal FileChooser() =
             where (shouldAcceptFile file config.Blacklist config.Whitelist)
             select (new FileEntry(file))
          }
-         |> Seq.cache
+         |> Seq.map computeFileEntryAsync
+         |> Async.Parallel
+         |> Async.RunSynchronously :> FileEntry seq
       with 
       | _ -> 
          puts <| sprintf "Unable to open folders %A" config.Folders
