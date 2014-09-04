@@ -32,6 +32,11 @@ open MBT.Core.IO
 type internal ArchiverResponse = { Archived : Map<FileEntry, string>; Failed : FileEntry seq }
 
 /// <summary>
+/// The response from the Space Solver actor
+/// </summary>
+type internal SolverResponse = Success of FileEntry seq | Failure
+
+/// <summary>
 /// The standard response to any request
 /// </summary>
 type internal StandardResponse = Success | Failure
@@ -41,7 +46,7 @@ type internal StandardResponse = Success | Failure
 /// </summary>
 type internal ResponseMessage =
    | FileChooser of FileEntry seq
-   | Solver of FileEntry seq
+   | Solver of SolverResponse
    | Archiver of ArchiverResponse
    | Manifest of StandardResponse
    | Switcher

@@ -58,9 +58,12 @@ type internal SpaceSolver() =
       | Solver(actorMessage) ->
          match actorMessage.Callback with
          | Some(callback) -> 
-            let archiveRootPath = actorMessage.Payload.RootArchivePath
-            let files = actorMessage.Payload.Files
-            let greedyResult = driveSpace archiveRootPath |> minusWiggleRoom |> solveUsingGreedy files
-            ResponseMessage.Solver greedyResult |> callback
+            try
+               let archiveRootPath = actorMessage.Payload.RootArchivePath
+               let files = actorMessage.Payload.Files
+               let greedyResult = driveSpace archiveRootPath |> minusWiggleRoom |> solveUsingGreedy files
+               callback << ResponseMessage.Solver <| SolverResponse.Success greedyResult
+            with
+            | _ -> callback << ResponseMessage.Solver <| SolverResponse.Failure
          | None -> failwith "Unable to callback"
       | _ -> failwith "Unknown message"

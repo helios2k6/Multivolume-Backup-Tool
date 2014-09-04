@@ -76,9 +76,7 @@ type internal Archiver() =
 
    let tryArchiveFile rootArchivePath sourceFile =
       let targetFilePath = calculateArchiveFilePath rootArchivePath sourceFile
-      //let result = tryCopy sourceFile.Path targetFilePath
-
-      let result = true
+      let result = tryCopy sourceFile.Path targetFilePath
 
       if result then 
          Some targetFilePath 

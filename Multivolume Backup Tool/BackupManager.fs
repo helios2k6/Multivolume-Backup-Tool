@@ -78,9 +78,12 @@ type internal BackupManager(parent : IActor<BackupManagerResult>, config : Appli
 
    let handleSolvingStateMessage msg info =
       match msg with
-      | ResponseMessage.Solver(targetFiles) ->
-         archiver +! Message.Archiver({ Payload = { RootArchivePath = config.ArchiveFilePath; Files = targetFiles }; Callback = Some callback })
-         Archiving(info)
+      | ResponseMessage.Solver(result) ->
+         match result with
+         | SolverResponse.Success(targetFiles) ->
+            archiver +! Message.Archiver({ Payload = { RootArchivePath = config.ArchiveFilePath; Files = targetFiles }; Callback = Some callback })
+            Archiving(info)
+         | SolverResponse.Failure -> Error
       | _ -> failwith "Unknown message"
 
    let handleArchivingStateMessage msg info =
