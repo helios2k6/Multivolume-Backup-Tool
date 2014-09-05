@@ -78,6 +78,11 @@ type internal ManifestRequest = { RootArchivePath : string; StorageReport : Map<
 type internal BackupRequest = Start | Response of ResponseMessage
 
 /// <summary>
+/// A message to the writer actor, detailing what file to write to and what the bytes are
+/// </summary>
+type internal WriteMessage = { Path : string; Payload : byte[]; IsEnd : bool }
+
+/// <summary>
 /// The types of messages that can be sent to the actors of this backup system
 /// </summary>
 type internal Message =
@@ -85,6 +90,7 @@ type internal Message =
    | FileChooser of ActorMessage<ApplicationConfiguration>
    | Solver of ActorMessage<StandardRequest>
    | Archiver of ActorMessage<StandardRequest>
+   | Write of WriteMessage
    | Manifest of ActorMessage<ManifestRequest>
    | Switcher of ActorSignal
    | Backup of BackupRequest

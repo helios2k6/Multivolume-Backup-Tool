@@ -67,6 +67,7 @@
     <Compile Include="ConsoleActor.fs" />
     <Compile Include="FileChooser.fs" />
     <Compile Include="SpaceSolver.fs" />
+    <Compile Include="Writer.fs" />
     <Compile Include="Archiver.fs" />
     <Compile Include="ManifestWriter.fs" />
     <Compile Include="VolumeSwitcher.fs" />
